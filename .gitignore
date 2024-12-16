@@ -1,3 +1,7 @@
+# Large data files
+sim/*.RDS
+*.csv
+
 # History files
 .Rhistory
 .Rapp.history
