@@ -1,6 +1,7 @@
 # Large data files
 sims/*.RDS
 *.csv
+*.RDS
 
 # History files
 .Rhistory

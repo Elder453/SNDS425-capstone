@@ -47,13 +47,6 @@ monthly_clean <- monthly_clean |>
     month = factor(month)
   ) |> 
   dplyr::select(-image_year, -elevation_bins)
-  
-# # Convert to sf object
-# data <- st_as_sf(
-#   monthly_clean,
-#   coords = c("lon", "lat"),
-#   crs = 4326
-# )
 ```
 
 # Abstract
@@ -446,17 +439,6 @@ Beyond the visible spectrum, the infrared bands `SR_B4`, `SR_B5`, and `SR_B7` sh
 
 The observed correlations provide critical guidance for feature engineering and model selection. The weak correlations between NDVI and individual spectral bands further reinforce the need to explore non-linear models, such as Random Forests, that can capture complex interactions. At the same time, the high collinearity among certain bands necessitates dimensionality reduction to mitigate redundancy and improve computational efficiency. Incorporating indices such as NDVI or enhanced vegetation indices may allow for a more nuanced representation of vegetation health, leveraging the interplay of spectral bands more effectively. While spatial and elevation variables appear weakly correlated with NDVI, they may still play an important role in explaining regional variations when combined with other predictors.
 
-```{r, echo=FALSE, fig.width=8, fig.height=4, out.width="100%", fig.align="center"}
-ggplot(monthly_clean, aes(x = dominant_landcover, y = elevation_meters, fill = dominant_landcover)) +
-  geom_boxplot(outlier.size = 0.5) +
-  theme_pub() +
-  labs(
-    title = "Elevation Distribution Across Land Cover Classes",
-    x = "Land Cover Class", y = "Elevation (meters)"
-  ) +
-  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
-        legend.position = "none")
-```
 
 ## Section Conclusion
 
@@ -562,9 +544,6 @@ if (REPRODUCE) {
 } else {
   logistic_model <- readRDS("sims/log_model.RDS")
 }
-
-# Model summary
-# summary(logistic_model)
 ```
 
 ### Performance Evaluation:
@@ -585,7 +564,7 @@ if (REPRODUCE) {
   
   # Class-wise metrics
   class_metrics <- as.data.frame(conf_matrix$byClass) |> 
-    select(-'Sensitivity', -'Specificity', -'Pos Pred Value', -'Neg Pred Value', -'Prevalence', -'Detection Prevalence', -'Detection Rate')
+    dplyr::select(Precision, Recall, F1, "Balanced Accuracy")
   
   # Macro-averages for Recall, Precision, and F1-score
   macro_avg <- colMeans(class_metrics)
@@ -596,8 +575,6 @@ if (REPRODUCE) {
 ```
 
 $$
-\textbf{Table: Performance Evaluation of Multinomial Regression Model}
-\\
 \begin{array}{|l|c|c|c|c|}
 \hline
 \textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Balanced Accuracy} \\ \hline
@@ -749,9 +726,8 @@ if (REPRODUCE) {
     frequencies = frequencies |> fractions(),
     magnitudes = magnitudes,
     dominant_frequency = dominant_freq |> fractions()
+    # 1/12 is dominant frequency after DC
   )
-  
-  # 1/12 is dominant frequency after DC
 }
 ```
 
@@ -819,7 +795,7 @@ if (REPRODUCE) {
   
   # Class-wise metrics
   class_metrics <- as.data.frame(conf_matrix$byClass) |> 
-    select(-'Sensitivity', -'Specificity', -'Pos Pred Value', -'Neg Pred Value', -'Prevalence', -'Detection Prevalence', -'Detection Rate')
+    dplyr::select(Precision, Recall, F1, "Balanced Accuracy")
   
   # Macro-averages for Recall, Precision, and F1-score
   macro_avg <- colMeans(class_metrics)
@@ -862,8 +838,6 @@ if (REPRODUCE) {
 ```
 
 $$
-\textbf{Table: Performance Evaluation of Sinusoidal Multinomial Regression Model}
-\\
 \begin{array}{|l|c|c|c|c|}
 \hline
 \textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Balanced Accuracy} \\ \hline
@@ -951,8 +925,6 @@ if (REPRODUCE) {
 ```
 
 $$
-\textbf{Table: Random Forest Grid Search Results with Out-of-Bag (OOB) Error}
-\\
 \begin{array}{|l|c|c|c|c|}
 \hline
 \textbf{Number of Trees} & \textbf{Features per Split (mtry)} & \textbf{Max Depth} & \textbf{OOB Error} \\ \hline
