@@ -14,4 +14,7 @@ source("PrepData.R")
 source("ExploreData.R")
 
 # Perform modeling and analysis
-source("Analysis.R")
+source("Analysis-PCA.R")              # Perform PCA and scree plot
+source("Analysis-BaselineModel.R")     # Baseline multinomial logistic regr
+source("Analysis-TemporalModel.R")     # Temporal multinomial regression
+source("Analysis-RandomForestModel.R") # Random forest model

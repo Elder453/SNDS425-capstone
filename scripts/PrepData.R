@@ -1,5 +1,7 @@
-# PrepData.R
-# Purpose: Clean and prepare data for analysis
+# ===========================
+# Script: PrepData.R
+# Purpose: Load and preprocess the raw data for analysis.
+# ===========================
 
 # Load raw data
 rawdata <- readRDS("Rawdata.rds")
