@@ -9,6 +9,7 @@ sims/*.RDS
 # Session Data files
 .RData
 .RDataTmp
+.csv
 
 # User-specific files
 .Ruserdata
