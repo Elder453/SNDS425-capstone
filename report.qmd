@@ -846,9 +846,101 @@ $$
 
 
 
-## Non-Linear Models: Random Forests
+## Non-Linear Models
 
-Given the limitations of linear models, Random Forests are introduced to capture non-linear relationships and feature interactions. Random Forests are ensemble models that construct multiple decision trees and combine their outputs to improve classification accuracy.
+A common challenge in energy and environmental data analysis is capturing non-linear relationships. 
+
+## CART (Classification and Regression Trees) Algorithm
+CART algorithms excel at modeling non-linear and complex interactions between both continuous and categorical variables, which are common in environmental datasets. CART algorithms work well with raw data and require minimal preprocessing, such as scaling or normalization. CART can handle noisy and missing data effectively, making it a reliable choice for datasets with gaps or inconsistencies, which are often seen in environmental monitoring systems. 
+CART forms the foundation of more advanced algorithms like Random Forest and Gradient Boosting, which are often recommended when higher accuracy is needed for predictive modeling. The CART algorithm builds a  single decision tree by recursively splitting the data based on a chosen criterion (e.g., Entropy). Then, it directly assigns a class label to the leaf nodes based on the majority vote in those nodes.
+CART's use of a single decision tree can lead to overfitting, especially when the tree grows deep and captures noise in the training data. To counter this, CART can at times require pruning techniques, which can lead to a tradeoff between bias and variance. However, the interpretability and computational efficiency of CART models are significant advantages, as the decision rules are easy to understand and communicate to stakeholders.
+
+### Assumptions:
+
+CART models make no assumptions about the functional form of the predictors and outcomes, making them highly flexible for complex datasets. They can handle multicollinearity, non-linear relationships, and high-dimensional predictors effectively.
+
+## Implementation:
+The monthly averages dataset was filtered to points within U.S. borders and assessed in year-wise batches, with unique entries defined by plotid. Landcover classes were dynamically encoded, and visualized on the GEE interface:
+![Map of Visualized Data](sims/actual_map.png)
+The CART model was trained on 70% of the dataset and tested on 30% of the dataset, using predictors: NDVI, SR_B1, SR_B2, SR_B3, SR_B4, SR_B5, SR_B7, elevation_meters (See full code [here](https://code.earthengine.google.com/27be438d2822e76c39af6aece7d61aad)).
+For instance, for 2018, the data sizes were as follows;
+* Total Observations: 24,411
+* Training Set: 16,942 observations
+* Testing Set: 7,469 observations
+
+## Performance Evaluation
+The CART model was evaluated using accuracy, precision, recall, and the kappa coefficient. It earned:
+* An accuracy of 0.553, or 55.3%
+* A kappa coefficient of 0.304
+The classifier incorrectly classified 3339 observations, representing 44.7% of the testing set. There were 30 unique misclassification types, and we observed those 6 with the highest misclassification frequency:
+1. Trees classified as Grass/Forb/Herb (805)
+2. Grass/Forb/Herb classified as Trees (745)
+3. Trees classified as Shrubs (382)
+4. Shrubs classified as Trees (322)
+5. Trees classified as Barren (192)
+6. Barren classified as Trees (153)
+These misclassifications were styled dynamically by type and visualized on the map to explore any geospatial groupings. We see that trees and grass are often misclassified as one another along the northeast, but grass is incorrectly classified as trees in the midwest. This shows that the model struggles to distinguish between these two classes in certain regions, but especially where grass is prevalent.
+![Map of Top 6 Misclassifications Against Actual Values](sims/layeredmap.png)
+Given certain classes appeared to host disproportionate misclassifications (e.g., Trees), we explored misclassification rates, precision, and recall by class, shown in the table. First, misclassification rates were calculated as follows;
+$$
+\text{Misclassification Rate} = \frac{\text{Misclassified Points in Class}}{\text{Total Points in Class}}
+$$
+
+While all classes have moderate to high misclassification rates, Snow, Impervious, Shrubs and Barren had significantly larger rates than other classes. The dispersion between rates is likely due to class imbalance in the training data, as certain classes were highly underrepresented relative to others, like Snow/ice (2 occurrences) against Grass/forb/herb (8,825 occurrences). Next, the two errors contributing to misclassification, predicting false positives and false negatives, was observed by calculating precision and recall. Precision by class  measures the proportion of true positive predictions out of all positive predictions made by the model:
+$$
+\text{Precision} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}
+$$
+Recall by class measures the proportion of true positive predictions out of all actual positive instances in the dataset:
+$$
+\text{Recall} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}
+$$
+When precision is less than recall for a given class, it suggests the model is overpredicting that class, resulting in many false positives. The table shows that Water, Grass/forb/herb and Barren are often incorrectly predicted for a certain point, which makes sense given their large representation in the training data. Conversely, when recall is less than precision, the model is underpredicting that class, resulting in many false negatives. For example, Trees and Shrubs are often missed by the model. Given these classes are not underrepresented in the training data, the model may be struggling to distinguish between them and other classes due to their similar spectral signatures.
+$$
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Landcover Type} & \textbf{Misclassifications} & \textbf{Misclassification Rate} & \textbf{Precision} & \textbf{Recall} \\ \hline
+\text{Water}           & 87   & 0.24 & 0.75 & 0.77 \\ \hline
+\text{Grass/forb/herb} & 935  & 0.44 & 0.55 & 0.56 \\ \hline
+\text{Trees}           & 1502 & 0.38 & 0.65 & 0.62 \\ \hline
+\text{Shrubs}          & 498  & 0.79 & 0.20 & 0.21 \\ \hline
+\text{Barren}          & 226  & 0.69 & 0.25 & 0.30 \\ \hline
+\text{Impervious}      & 90   & 0.93 & 0.06 & 0.07 \\ \hline
+\text{Snow/Ice}        & 1    & 1.00 & 0.00 & 0.00 \\ \hline
+\end{array}
+$$
+
+The results reveal that the CART model, while providing a simple and interpretable solution, struggles to accurately classify land cover types due to the complexity of the data, and perhaps the lack of abundant labels proportionate to the geographic area covered by the dataset. 
+
+To further our analysis, we created a second CART algorithm that uses our entire dataset as training in order to classify all pixels in a satellite image, from which the algorithm pulls new band values (see full code [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6)). Given the time and computational power required to analyze such large satellite datasets, we focused on the state of New York for this application of the CART algorithm. A rectangular region is defined around NY and expanded into a 60 km buffer, from which a “doughnut” buffer is created by excluding the original rectangle. Points within the rectangle are used as training data, while points within the doughnut buffer are designated as test data. 
+A Landsat 8 composite image is generated for the region, and predictor bands (B1–B7) are sampled at training points to train a CART classifier. The classifier is then applied to the composite image to produce a classified landcover map. The classification results are validated using test points, and a confusion matrix is computed to evaluate performance, including overall accuracy and the Kappa coefficient. Misclassified points, identified by comparing predicted values (classification) to true values (landcover), are highlighted in red and displayed on the map.
+![Map of Classified Landcover in New York](sims/mapoverlays.png)
+## Performance Evaluation
+Using the full dataset for a region of interest (New York), the CART model achieved an overall accuracy of 0.74, or 73.84%, and a kappa coefficient of 0.52. This indicates a significant approvement relative to the previous CART model. The classifier incorrectly classified 72 out of 241 test  observations, corresponding to a 29% misclassification rate. The confusion matrix shows that the model struggles to distinguish between certain classes, such as Trees and Grass/Forb/Herb, which are often misclassified as one another.It should be noted that Snow was not included in the training set because no Snow/ice labels existed in NY.
+$$
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Landcover Type} & \textbf{Misclassifications} & \textbf{Misclassification Rate} & \textbf{Precision} & \textbf{Recall} \\ \hline
+\text{Water}           & 2   & 0.10 & 0.9 & 0.9 \\ \hline
+\text{Grass/forb/herb} & 26  & 0.18 & 0.85 & 0.82 \\ \hline
+\text{Trees}           & 22   & 0.43 & 0.52 & 0.56 \\ \hline
+\text{Shrubs}          & 3    & 1.0 & 0.0 & 0.0 \\ \hline
+\text{Barren}          & 1    & 1.0 & 0.0 & 0.0 \\ \hline
+\text{Impervious}      & 4    & 0.8 & 0.25 & 0.20 \\ \hline
+\end{array}
+$$
+Water was predicted with high accuracy, with only 2 misclassifications and a low misclassification rate of 0.10. The model achieved both precision and recall of 0.9, showing strong performance in identifying this class. Similarly, Grass/Forb/Herb was predicted reasonably well, with 26 misclassifications and a misclassification rate of 0.18. The precision and recall scores of 0.85 and 0.82, respectively, suggest that while the model effectively predicts this class, occasional misclassifications occur, particularly with the Trees class.
+The Trees class performed notably worse, with 22 misclassifications and a high misclassification rate of 0.43. Precision and recall scores of 0.52 and 0.56 indicate that Trees are often confused with other vegetation types, such as Grass/Forb/Herb. This highlights a key limitation in the model’s ability to distinguish between similar vegetative landcover classes.
+
+Shrubs and Barren classes were severely underrepresented, with both having a misclassification rate of 1.0. Precision and recall for these classes were 0.0, indicating that the model entirely failed to identify these landcover types. The poor performance likely stems from a lack of sufficient training data for these classes, leading the model to misclassify them as other dominant classes.
+
+In summary, while the CART model using full training data performs well for Water and moderately well for Grass/Forb/Herb, it struggles with Trees, Shrubs, Barren, and Impervious classes. The high misclassification rates for underrepresented classes highlight the need for a more balanced training dataset and additional features to improve class differentiation, particularly among vegetation types.
+
+### Conclusion
+Results from both models suggest that CART models may be overfitting to certain spectral signatures or struggling to differentiate between classes with similar spectral characteristics, particularly struggling with the Trees class. This demonstrates the limitations of CART's use of a single decision tree and its sensitivity to noise. To improve classification accuracy and address these challenges, we will explore ensemble methods like Random Forests, which can capture non-linear relationships and interactions more effectively by using multiple decision trees.
+
+## Random Forests
+
+Given the limitations of linear models and CART models, Random Forests are introduced to capture non-linear relationships and feature interactions. Random Forests are ensemble models that construct multiple decision trees and combine their outputs to improve classification accuracy.
 
 ### Assumptions:
 
