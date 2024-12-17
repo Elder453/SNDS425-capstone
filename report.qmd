@@ -1,5 +1,5 @@
 ---
-title: "S&DS 425/625 Report"
+title: "S&DS 425/625 Report: Landcover Classification"
 date: "`r Sys.Date()`"
 author: "Elder Veliz & Emmanuelle Brindamour"
 format: pdf
@@ -58,21 +58,7 @@ monthly_clean <- monthly_clean |>
 
 # Abstract
 
-An overview of your report, including one or so sentences on each of these:
-
--   a non-technical description of the problem you are trying to solve or the question you are trying to answer, and why you are trying to answer that question
--   a non-technical description of the data, where it came from, and what it contains, including possibly the predictors, the outcome, and the observations
--   a non-technical description of what kind of analysis you did, including high-level description of what the predictors were, what the outcome was, and how to interpret the results of the model
--   a brief summary of the models that are used
--   a non-technical description of the results of the model and main takeaways.
-
-An abstract is one paragraph with text only and is aimed at a technical audience. This appears at the beginning of the report.
-
-# Executive Summary
-
-An executive summary is typically longer than the abstract, up to a page, could possibly contain key visualizations, tables, or other figures that help communicate either the raw data or the results of the model, and is intended for someone outside of the data science/analytics team of an organization. It is important to be as concise as possible, and describe each of those points above without using language that is overly technical and not part of commonly used English. The executive summary is a separate document.
-
-Note that in the abstract, executive summary, and throughout the report you should avoid using first-person singular pronouns like "I" and "me", even if you are the only author. Use "we" or use passive voice.
+This report evaluates multiple machine learning approaches for land cover classification using satellite-derived spectral, temporal, and spatial predictors. Models include Multinomial Logistic Regression (baseline), a temporal extension through Sinusoidal Regression, the non-linear CART algorithm, and the ensemble-based Random Forest model. While logistic regression provided interpretability, it struggled with class imbalance and complex feature interactions. Sinusoidal regression captured periodic trends but offered minimal improvement. The CART model addressed non-linear relationships but overfit the data, particularly for spectrally similar classes. Random Forest emerged as the best-performing model, achieving a macro-averaged F1-score of 0.812 and balanced accuracy of 0.877, demonstrating its ability to handle class imbalance and capture complex patterns. Key predictors included NDVI, Vegetation Indicators, and Elevation. The study underscores the importance of non-linear models and ensemble methods for accurate and robust land cover classification.
 
 # Introduction
 
@@ -1168,23 +1154,18 @@ To compare the performance of the models (logistic regression, Random Forests, a
 
 This section details the implementation of multiple classification models, including logistic regression (linear baseline), Random Forests (non-linear, ensemble), and sinusoidal regression (temporal modeling). Each model addresses specific challenges identified in the data exploration phase, such as overlapping class boundaries, temporal periodicity, and spatial dependencies. The next section will visualize and interpret the results, providing a comparative analysis of model performance and insights into the relationships between predictors and land cover classes.
 
-## Visualization and interpretation of the results
-
-Create visualizations of the results when appropriate, focusing on visualizations that
-
--   help describe aspects of the results that have real-world interpretation
--   help the reader understand how the model addresses the problem you are studying.
-
-**Visualizations are one of the most powerful ways to communicate information to the reader, so it is important to spend time producing clear, descriptive, eye-catching visualizations.**
-
-Discuss the results of the model or models you chose, and describe how they are related to the problem statement or question that you were trying to answer in the project.
-
-If you have built multiple models or types of analysis, compare the measures of performance and the ease of interpretability across models or types of analysis, stating which model or models performed best, and which model or models were most interpretable. Finally, decide which model or type of analysis is best for your particular problem based on some combination of performance and interpretability.
-
 # Conclusions and Recommendations {#conclusions-recs}
+This report presents a comprehensive analysis of land cover classification using multiple modeling approaches, including Multinomial Logistic Regression, a temporal extension through Sinusoidal Regression, the CART algorithm, and the ensemble-based Random Forest model. Each method was systematically evaluated to address specific challenges inherent in remote sensing data, including class imbalance, non-linear relationships, overlapping class boundaries, and temporal-spatial dependencies.
 
-One or two paragraphs stating conclusions, recommendations, and ideas for future work and improvements.
+The Multinomial Logistic Regression served as a baseline model, offering interpretability and highlighting the importance of predictors such as NDVI, spectral bands, and spatial indicators. While effective for dominant classes like Water and Grass/Forb/Herb, the model struggled with underrepresented classes such as Shrubs and Snow/Ice, resulting in poor recall and precision for these categories. The sinusoidal extension introduced periodicity through Fourier-transformed sine and cosine terms, capturing seasonal trends, but failed to deliver substantial improvements, suggesting that periodic components provided limited additional predictive power.
 
-# References
+The CART algorithm demonstrated the advantages of non-linear models by accounting for complex interactions among predictors. However, its reliance on a single decision tree led to overfitting, particularly for classes with similar spectral signatures such as Trees and Grass/Forb/Herb. Misclassification rates were notably high for minority classes like Shrubs and Snow/Ice, reflecting the challenges of class imbalance in the training data. Geospatial analysis further revealed regional misclassification patterns, particularly in vegetation-dominated areas, underscoring the need for enhanced feature differentiation.
 
-List any references for your data source(s), other work or results, etc.
+The Random Forest model emerged as the best-performing approach, achieving significant improvements in accuracy, precision, and recall. By aggregating predictions from multiple decision trees, Random Forests effectively addressed the limitations of CART, reducing overfitting and capturing complex relationships in the data. With a macro-averaged F1-score of 0.812 and balanced accuracy of 0.877, the Random Forest model demonstrated superior performance across all classes, including substantial gains for minority categories like Snow/Ice. Variable importance analysis further identified NDVI, Vegetation Indicators, and Elevation as key predictors, reinforcing their ecological relevance in distinguishing land cover types.
+
+To improve our exploration, many factors could be considered. First, enhancing class representation by oversampling minority classes (e.g., Shrubs, Snow/Ice) or undersampling dominant ones could improve model performance.Second, incorporating additional features like texture metrics, vegetation indices, or spatial aggregates could improve class separability. Third, prioritizing ensemble methods like Random Forests or Gradient Boosting is vital for future land cover classification tasks due to their flexibility and robustness.Finally, incorporating spatial relationships explicitly through neighborhood-level statistics or spatial smoothing techniques could account for ecological continuity.
+
+In conclusion, this study highlights the importance of integrating spectral, temporal, and spatial dimensions into land cover modeling. While linear models offer clarity and baseline performance, advanced non-linear approaches like Random Forests provide the accuracy and robustness required for real-world environmental monitoring. 
+
+
+
