@@ -14,12 +14,14 @@ suppressMessages({
   library(caret)
   library(ggplot2)
   library(ggcorrplot)
-  library(janitor)    # Clean col names
-  library(nnet)       # Multinomial
+  library(janitor)      # Clean col names
+  library(nnet)         # Multinomial
   library(pubtheme)
-  library(ranger)     # Random forest
+  library(randomForest) # Random forest
+  library(ranger)       # Random forest
   library(sf)
   library(tidyverse)
+  library(MASS)
 })
 
 # Constants
@@ -40,12 +42,11 @@ monthly_clean <- monthly_clean |>
     veg = factor(veg),
     east_west = factor(east_west),
     north_south = factor(north_south),
-    elevation_bins = factor(elevation_bins),
     dominant_landuse = factor(dominant_landuse),
     dominant_landcover = factor(dominant_landcover),
     month = factor(month)
-  ) |>
-  select(-image_year)
+  ) |> 
+  dplyr::select(-image_year, -elevation_bins)
   
 # # Convert to sf object
 # data <- st_as_sf(
@@ -108,7 +109,6 @@ The dataset comprises satellite-derived spectral bands (e.g., B1 through B7), th
 -   `EastWest`: A binary variable indicating whether the pixel is located east (1) or west (0) of the median longitude.
 -   `NorthSouth`: A binary indicating whether the pixel is located north (1) or south (0) of the median latitude.
 -   `Elevation_meters`: A continuous measurement of the elevation in meters above sea level at the pixel location.
--   `Elevation_Bins`: A categorical variable representing the elevation range of the pixel.
 
 ## Exploration of Outcome
 
@@ -181,9 +181,14 @@ Ultimately, while NDVI provides meaningful separability for certain land cover c
 ```{r, echo=FALSE, fig.width=8, fig.height=6, out.width="100%", fig.align="center"}
 if (REPRODUCE) {
   long_data <- monthly_clean |>
-    pivot_longer(cols = starts_with("sr_b"), names_to = "spectral_band", values_to = "value")
+    pivot_longer(cols = starts_with("sr_b"), 
+                 names_to = "spectral_band", 
+                 values_to = "value")
   
-  (p <- ggplot(long_data, aes(x = dominant_landcover, y = value, fill = dominant_landcover)) +
+  (p <- ggplot(long_data, 
+               aes(x = dominant_landcover, 
+                   y = value, 
+                   fill = dominant_landcover)) +
     geom_boxplot() +
     theme_pub() +
     labs(title = "Distribution of Spectral Bands by Land Cover Class",
@@ -245,7 +250,7 @@ The seasonal trends also highlight the need for models that account for temporal
 
 Overall, the observed periodic patterns in NDVI justify the inclusion of temporal features in the modeling framework. These features not only enhance the interpretability of the models but also provide a biologically meaningful basis for improving classification accuracy.
 
-```{r, echo=FALSE, fig.width=8, fig.height=6, out.width="100%", fig.align="center"}
+```{r, echo=FALSE, fig.width=8, fig.height=5, out.width="100%", fig.align="center"}
 if (REPRODUCE) {
   (p <- ggplot(long_data, 
                aes(x = season, 
@@ -261,8 +266,10 @@ if (REPRODUCE) {
     theme(
       axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
       strip.text = element_text(size = 10, face = "bold")
-    ))
-  ggsave("sims/spectral_bands_seasonal.png", plot = p, width = 8, height = 6, dpi = 300)
+    ) +
+    # reduce y-axis ticks
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 3)))
+  ggsave("sims/spectral_bands_seasonal.png", plot = p, width = 8, height = 5, dpi = 300)
 } else {
   knitr::include_graphics("sims/spectral_bands_seasonal.png")
 }
@@ -292,7 +299,7 @@ if (REPRODUCE) {
 }
 ```
 
-```{r, echo=FALSE, fig.width=8, fig.height=6, out.width="100%", fig.align="center"}
+```{r, echo=FALSE, fig.width=8, fig.height=5, out.width="100%", fig.align="center"}
 if (REPRODUCE) {
   (p <- ggplot(long_data, 
                aes(x = year, 
@@ -308,9 +315,10 @@ if (REPRODUCE) {
   theme(
     axis.text.x = element_text(size = 6, angle = 90),
     strip.text = element_text(size = 10, face = "bold")
-  ))
+  ) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 3)))
   
-  ggsave("sims/spectral_bands_yearly.png", plot = p, width = 8, height = 6, dpi = 300)
+  ggsave("sims/spectral_bands_yearly.png", plot = p, width = 8, height = 5, dpi = 300)
 } else {
   knitr::include_graphics("sims/spectral_bands_yearly.png")
 }
@@ -417,9 +425,10 @@ if (REPRODUCE) {
       legend.text = element_text(size = 8),
       legend.title = element_text(size = 12, face = "bold"),
       axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-      axis.text.y = element_text(size = 10)
-    ) +
-    theme(axis.title.x=element_blank(), axis.title.y=element_blank()))
+      axis.text.y = element_text(size = 10),
+      axis.title.x=element_blank(), 
+      axis.title.y=element_blank()
+      ))
   
   ggsave("sims/correlation_matrix.png", plot = p, width = 8, height = 6, dpi = 300)
 } else {
@@ -449,31 +458,9 @@ ggplot(monthly_clean, aes(x = dominant_landcover, y = elevation_meters, fill = d
         legend.position = "none")
 ```
 
-## Assumptions for Modeling
-
-From the data exploration, several assumptions emerge:
-
-1.  Predictor-Outcome Relationships:
-    -   Spectral bands and NDVI are assumed to have distinct distributions across land cover classes.
-    -   Temporal features (e.g., month) contribute to variations in spectral responses, particularly in vegetated areas.
-2.  Spatial Dependencies:
-    -   The inclusion of spatial aggregates accounts for the influence of neighboring pixels, improving classification accuracy.
-3.  Seasonal Patterns:
-    -   NDVI and other vegetation-sensitive bands exhibit periodic trends, justifying sinusoidal modeling.
-
-Justifying Model Choices
-
-1.  Linear Models: NDVI trends suggest linear separability in some cases, making Ordinary Least Squares (OLS) a suitable baseline.
-
-2.  Random Forests: To handle potential overlaps in spectral responses between classes, Random Forests are well-suited for non-linear decision boundaries.
-
-3.  Temporal Models: Incorporating sinusoidal features into logistic regression or Random Forest classifiers accounts for seasonal oscillations, enhancing model performance.
-
-4.  Spatial-Temporal Extensions: Models that combine spatial aggregates and temporal features provide a comprehensive framework for land cover classification.
-
 ## Section Conclusion
 
-This exploratory analysis establishes the relationships between predictors and the outcome variable, supports the inclusion of temporal and spatial features, and provides justification for model selection. The next section will focus on modeling approaches, detailing the assumptions, methodology, and evaluation metrics used to predict land cover classes.
+This exploratory analysis establishes the relationships between predictors and the outcome variable, supports the inclusion of temporal and spatial features, and provides insight into approaches for model selection. The next section will focus on modeling approaches, detailing the assumptions, methodology, and evaluation metrics used to predict land cover classes.
 
 # Modeling and Analysis {#modelinganalysis}
 
@@ -489,25 +476,29 @@ The task involves predicting the dominant land cover class (`dominant_landcover`
 
 -   Outcome ($y$): The target variable is `dominant_landcover`, representing land cover classes such as “Trees,” “Water,” “Snow/Ice,” etc.
 
-## Baseline Models: Linear Models
+## Baseline Models: Multinomial Logistic Regression Model
 
 ### Assumptions:
 
-Linear models assume that the predictors have a linear relationship with the response variable, which is appropriate for continuous outcomes but must be adapted for classification tasks. Given that land cover classification involves categorical outcomes, we implement **multinomial logistic regression** as our baseline linear model.
+The multinomial logistic regression model assumes a *linear* relationship between the predictors and the log-odds of class membership. While this assumption simplifies interpretation, it imposes constraints that may not align with the inherent complexity of the land cover classification problem. Specifically, land cover classes often exhibit non-linear relationships, overlapping boundaries, and significant multicollinearity among predictors (e.g., spectral bands), which may reduce the model’s ability to generalize effectively. To mitigate multicollinearity, Principal Component Analysis (PCA) was employed to transform the highly correlated spectral bands into orthogonal components, thereby preserving the majority of variance while reducing redundancy and computational complexity.
 
 ### Model Specification:
 
-The multinomial logistic regression model predicts the probability of a pixel belonging to a given class $C$ as follows:
+The multinomial logistic regression model predicts the probability of a pixel $y$ belonging to a given land cover class $C$, where $c \in [1, K]$, as follows:
 
 $$
-P(y=c | X) = \frac{\exp(\beta_{c_0} + \beta^\top_{c}X)}{\sum_{k=1}^{K} \exp(\beta_{k_0} + \beta^\top_{k}X)}, \forall c \in [1, K]
+P(y=c | X) = \frac{\exp(\beta_{c_0} + \beta^\top_{c}X)}{\sum_{k=1}^{K} \exp(\beta_{k_0} + \beta^\top_{k}X)}
 $$
 
-where $X \in \mathbb{R}^{n \times p}$ represents the predictors (spectral bands, NDVI, temporal features), and $\beta_c$ are the coefficients for class $c$.
+where $X$ represents the predictors (spectral bands, NDVI, temporal features), $\beta_c$ is the vector of coefficients for class $c$, and $\beta_{c_0}$ is the intercept for class $c$. 
+
+The model estimates $\beta$ using maximum likelihood estimation to minimize the discrepancy between the predicted and observed probabilities.
 
 ### Implementation:
 
-We fit the multinomial logistic regression model with spectral bands (`SR_B1` to `SR_B7`), `NDVI`, and temporal feature `season`, elevation bins, vegetation indicator, and spatial features (`EastWest` and `NorthSouth`) as predictors. Collinearity among spectral band predictors will be mitigated using Principal Component Analysis (PCA) to reduce dimensionality.
+The predictors used in the model include spectral bands (`SR_B1` to `SR_B7`), `NDVI`, temporal features (`season`), elevation bins, vegetation indicators, and spatial features (`EastWest` and `NorthSouth`). However, due to the strong collinearity observed among the spectral bands (e.g., `SR_B1`, `SR_B2`, and `SR_B3`), dimensionality reduction is applied using Principal Component Analysis (PCA). PCA transforms the original spectral band features into orthogonal components, retaining the majority of the variance in the data while reducing redundancy and computational complexity.
+
+#### Principal Component Analysis (PCA)
 
 ```{r, echo=FALSE, fig.width=8, fig.height=4}
 # Feature selection: Use PCA to reduce multicollinearity
@@ -539,22 +530,30 @@ ggplot(pca_df, aes(x = PC, y = Variance)) +
   scale_y_continuous(breaks = seq(0.05, 1, by = 0.1))
 ```
 
-The scree plot shows the proportion of variance explained by each Principal Component. The first principal component (PC1) accounts for approximately 75% of the variance, while the second principal component (PC2) explains an additional 15%, together explaining over 90% of the total variance. Beyond PC2, the contribution of additional components (PC3 to PC6) is minimal, collectively explaining less than 10% of the variance. This diminishing contribution is evident in the elbow of the curve, where the explained variance sharply declines after PC2.
+The scree plot of explained variance demonstrates that the first principal component (PC1) accounts for approximately 75% of the variance, while the second principal component (PC2) explains an additional 15%—together explaining over 90% of the total variance. Beyond PC2, the contribution of additional components (PC3 to PC6) is minimal, collectively explaining less than 10% of the variance, indicating that their inclusion offers limited additional information.
 
-Given this pattern, we retain only the first two principal components for downstream modeling, as they account for the vast majority of the variance in the spectral bands while significantly reducing dimensionality. Selecting only PC1 and PC2 enhances model simplicity and interpretability without substantial loss of information.
+Given this pattern, we retain only PC1 and PC2 for downstream modeling, as they account for the vast majority of the variance in the spectral bands while significantly reducing dimensionality. Selecting only PC1 and PC2 simplifies the model and improves computational efficiency while maintaining the interpretability of the dominant trends in the spectral bands.
+
+We proceed to fit the multinomial logistic regression model using PC1, PC2, `NDVI`, `season`, `elevation_meters`, `veg`, `east_west`, and `north_south` as predictors. We standardize the continuous predictors to have mean 0, standard deviation 1 to ensure that coefficients are on the same scale and interpretability is consistent across features.
+
 
 ```{r, echo=FALSE}
-pca_features <- as.data.frame(pca_bands$x[, 1:2]) # top 3 PCs
+# Standardize continuous predictors
+standardized_predictors <- scale(data.frame(
+  PC1 = pca_bands$x[, 1],                    # First PC
+  PC2 = pca_bands$x[, 2],                    # Second PC
+  NDVI = monthly_clean$ndvi,                 # NDVI
+  Elevation = monthly_clean$elevation_meters # Elevation
+))
 
-model_data <- cbind(
-  pca_features,                                         # PCA-reduced spectral bands
-  NDVI = monthly_clean$ndvi,                            # NDVI
-  Season = as.factor(monthly_clean$season),             # Temporal feature: Season
-  Elevation = as.factor(monthly_clean$elevation_bins),  # Elevation bins
-  Veg = as.factor(monthly_clean$veg),                   # Vegetation indicator
-  EastWest = as.factor(monthly_clean$east_west),        # Spatial: East/West
-  NorthSouth = as.factor(monthly_clean$north_south),    # Spatial: North/South
-  Outcome = monthly_clean$dominant_landcover            # Target: Land Cover Class
+# Construct the final dataset in a single step
+model_data <- data.frame(
+  standardized_predictors,                          # Standardized continuous predictors
+  Season = factor(monthly_clean$season),            # Temporal feature: Season
+  Veg = factor(monthly_clean$veg),                  # Vegetation indicator
+  EastWest = factor(monthly_clean$east_west),       # Spatial: East/West
+  NorthSouth = factor(monthly_clean$north_south),   # Spatial: North/South
+  Outcome = monthly_clean$dominant_landcover        # Target: Land Cover Class
 )
 
 if (REPRODUCE) {
@@ -566,93 +565,288 @@ if (REPRODUCE) {
 }
 
 # Model summary
-#summary(logistic_model)
+# summary(logistic_model)
 ```
 
 ### Performance Evaluation:
 
-Model performance will be evaluated using accuracy, precision, recall, and F1-score. A confusion matrix will be generated to analyze misclassifications across land cover classes.
+Model performance is evaluated using accuracy, precision, recall, and F1-score.
 
 ```{r, echo=FALSE}
-# Predict on training data
-predictions <- predict(logistic_model, model_data) # 66.52% using 3; 66.64% using 2 PCs
-conf_matrix <- confusionMatrix(predictions, model_data$Outcome)
-conf_matrix$table
+if (REPRODUCE) {
+  set.seed(425)
+  predictions <- predict(logistic_model, model_data)  # Predicted classes
+  true_labels <- model_data$Outcome                   # True labels
+  
+  # Confusion matrix
+  conf_matrix <- confusionMatrix(
+    data = factor(predictions, levels = levels(true_labels)), 
+    reference = factor(true_labels, levels = levels(true_labels))
+  )
+  
+  # Class-wise metrics
+  class_metrics <- as.data.frame(conf_matrix$byClass) |> 
+    select(-'Sensitivity', -'Specificity', -'Pos Pred Value', -'Neg Pred Value', -'Prevalence', -'Detection Prevalence', -'Detection Rate')
+  
+  # Macro-averages for Recall, Precision, and F1-score
+  macro_avg <- colMeans(class_metrics)
+  
+  (results_table <- class_metrics |> 
+    rbind(macro_avg))
+}
 ```
+
+$$
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Balanced Accuracy} \\ \hline
+\text{Barren} & 0.8534 & 0.9158 & 0.8835 & 0.9544 \\ \hline
+\text{Grass/Forb/Herb} & 0.6403 & 0.7816 & 0.7039 & 0.7091 \\ \hline
+\text{Impervious} & 0.4747 & 0.2310 & 0.3108 & 0.6140 \\ \hline
+\text{Shrubs} & 0.0561 & 0.0028 & 0.0052 & 0.4993 \\ \hline
+\text{Snow/Ice} & 0.4375 & 0.0308 & 0.0576 & 0.5154 \\ \hline
+\text{Trees} & 0.6425 & 0.5991 & 0.6200 & 0.7214 \\ \hline
+\text{Water} & 0.9057 & 0.9357 & 0.9205 & 0.9630 \\ \hline
+\textbf{Macro Averaged} & \textbf{0.5729} & \textbf{0.4995} & \textbf{0.5002} & \textbf{0.7109} \\ \hline
+\end{array}
+$$
+
+The performance metrics for the multinomial logistic regression model demonstrate both strengths and limitations, reflecting variability in the model’s ability to classify different land cover classes. The model performs well for dominant classes such as “Grass/Forb/Herb,” “Trees,” and “Water,” achieving F1-scores of 0.704, 0.620, and 0.920, respectively. Notably, “Water” stands out as the best-performing class, with exceptionally high precision (0.906) and recall (0.936). This strong performance is likely attributable to the distinct spectral signature of water, which facilitates accurate classification. Similarly, the relatively high recall (0.782) and precision (0.640) for “Grass/Forb/Herb” indicate the model’s capability to capture prevalent vegetative classes.
+
+In contrast, the model struggles significantly with minority and spectrally overlapping classes. For instance, the “Shrubs” class exhibits an F1-score of only 0.005, driven by extremely low recall (0.003) and precision (0.056). Likewise, the “Snow/Ice” class achieves an F1-score of 0.058, with a recall of 0.031, indicating that these classes are rarely identified correctly. These results highlight the challenges of classifying underrepresented categories, where insufficient training examples and overlapping spectral features hinder the model’s ability to generalize.
+
+The “Impervious” class also performs poorly, with a recall of 0.231 and an F1-score of 0.311. This suggests difficulty in distinguishing impervious surfaces from similar classes, like “Grass/Forb/Herb” which we previously observed shared similar predictor distributions. The relatively low precision for this class (0.475) further underscores the model’s inability to effectively separate it from other categories.
+
+Macro-averaged metrics, including an F1-score of 0.500 and balanced accuracy of 0.711, provide an overall assessment of model performance. While the balanced accuracy indicates moderate effectiveness across all classes, the macro-averaged F1-score reflects the challenges posed by poor performance on minority classes. The disparity between these metrics suggests that while the model is effective for majority and spectrally distinct classes, it fails to adequately address class imbalance and overlapping class distributions.
+
+These results highlight the model’s strengths in classifying dominant, spectrally distinct classes and its weaknesses in handling overlapping class distributions and underrepresented categories.
 
 ### Interpretation:
 
-The coefficients of the logistic model indicate the relative influence of each predictor (e.g., NDVI, PCA-derived features) on the probability of a pixel belonging to a specific land cover class. For example, higher NDVI values are expected to increase the likelihood of vegetation-related classes such as “Trees” or “Grass/Forb/Herb.”
+```{r, echo=FALSE, out.width="100%", fig.width=8, fig.height=4}
+if (REPRODUCE) {
+  # Extract coefficients
+  coefficients <- summary(logistic_model)$coefficients
+  
+  coef_long <- as.data.frame(coefficients) |>
+    rownames_to_column("Predictor") |>
+    pivot_longer(-Predictor, names_to = "Class", values_to = "Coefficient")
+  
+  # Create heatmap
+  (p <- ggplot(coef_long, aes(x = Class, y = Predictor, fill = Coefficient)) +
+    geom_tile() +
+    scale_fill_gradient2(low = "darkred", mid = "white", high = "darkgreen", midpoint = 0) +
+    theme_pub() +
+    labs(
+      title = "Heatmap of Coefficients by Predictor and Class",
+      x = "Predictor", y = "Class", fill = "Coefficient"
+    ) +
+    theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      legend.text = element_text(size = 6),
+      legend.title = element_text(size = 10),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+      axis.text.y = element_text(size = 10)
+    ))
+  
+  ggsave("sims/multinom_model_coeffs_heatmap.png", plot = p, width = 8, height = 6, dpi = 300)
+} else {
+  knitr::include_graphics("sims/multinom_model_coeffs_heatmap.png")
+}
+```
+
+The heatmap of coefficients provides an empirical representation of the multinomial logistic regression model, offering insights into how each predictor influences the relative log-odds of classification into a specific land cover class. Each cell represents the coefficient for a predictor-class pair, where positive values indicate an increase in the log-odds of a pixel belonging to that class, while negative values denote a decrease relative to the reference category. Notably, the Vegetation Indicator (`Veg:1`) exhibits the largest positive coefficients across vegetated classes such as “Trees,” “Shrubs,” and “Grass/Forb/Herb”, compared to the non-vegetated reference category (`Veg:0`). This result aligns with observations from the data exploration phase, where vegetated classes consistently demonstrated high NDVI values and distinct spectral patterns indicative of healthy vegetation. Conversely, non-vegetated classes, including “Water,” “Snow/Ice,” and “Impervious,” display negligible or negative coefficients for `Veg:1`, reflecting their spectral dissimilarity from vegetated surfaces.
+
+The intercept terms, particularly for “Grass/Forb/Herb” and “Trees,” are non-negligible and negative, suggesting higher baseline probabilities for these majority classes when all predictors are at their reference values. This observation reinforces the class distribution imbalance observed during the outcome exploration, where these vegetated classes accounted for over 75% of all observations. 
+
+The spatial predictors, `EastWest` and `NorthSouth`, reveal distinct trends. `EastWest:West` shows the largest negative coefficients for “Water” and “Trees”, indicating a reduced likelihood of these classes occurring in the western regions. Conversely, “Grass/Forb/Herb” and “Shrubs” display smaller negative coefficients, suggesting a more balanced east-west distribution for these classes. This trend aligns with geographic observations, where dense vegetation (trees) and water bodies are more prominent in the eastern United States. `NorthSouth:South`, on the other hand, exhibits negligible coefficients across most classes, with a modest negative value for “Snow/Ice”. This pattern is consistent with the climatological expectation that snow and ice are less likely to appear in southern regions closer to the equator, where temperatures are higher.
+
+The `NDVI` coefficients highlight its varying relevance across land cover types. `NDVI` is slightly positive for “Impervious” surfaces, likely reflecting bare soil or sparse vegetation associated with impervious areas. In contrast, `NDVI` is negative (albeit, minimally) for “Water” and “Shrubs”, consistent with their low or intermediate vegetation density, which was observed in the `NDVI` boxplots during data exploration. The negative relationship for “Water” reflects its distinct spectral signature, as water absorbs near-infrared light, resulting in consistently low NDVI values.
+
+The principal components (`PC1` and `PC2`) derived from spectral bands demonstrate subtle yet interpretable patterns. PC1 exhibits negligible coefficients across most classes, except for small negative values for “Shrubs” and “Water”. This result suggests that PC1 primarily captures spectral variations that do not contribute meaningfully to class separability. In contrast, PC2 displays small but positive coefficients across multiple classes, most prominently for “Trees” and “Snow/Ice”. This positive relationship may reflect spectral nuances captured in PC2 that are more aligned with vegetated and cryospheric surfaces. Notably, “Impervious” surfaces show near-zero coefficients for PC2, suggesting minimal spectral distinction along this principal component axis.
+
+The seasonal predictors (`Season:C`, `Season:L`, `Season:Q`) exhibit small but meaningful coefficients that align with their polynomial contrasts, given the ordered nature of the seasons. In multinomial regression, ordered factors are modeled using orthogonal polynomials to capture linear, quadratic, and cubic trends. `Season.C` (linear trend) is slightly negative for “Snow/Ice”, reflecting a steady seasonal decline as winter transitions into warmer seasons. `Season.L` (quadratic trend) and `Season.Q` (cubic trend) coefficients are most noticeable and positive for “Snow/Ice”, indicating that the relationship between seasonality and snow cover is non-linear. This aligns with the earlier seasonal NDVI analysis, which revealed pronounced temporal peaks and troughs for “Snow/Ice”. For other classes, the seasonal predictors have minimal influence, reinforcing the earlier observation that the linear separability of temporal trends is limited.
+
+The heatmap confirms and extends findings from the data exploration phase. The spatial predictors align with expected geographic distributions, particularly for “Water,” “Trees,” and “Snow/Ice”. NDVI and principal components reveal varying relevance, with NDVI strongly differentiating “Water” and “Impervious” surfaces, while PC2 captures subtle spectral distinctions for “Trees” and “Snow/Ice”. Seasonal predictors highlight the importance of non-linear trends, particularly for “Snow/Ice”.
 
 ### Appropriateness:
 
-While linear models provide interpretability and establish baseline performance, their assumption of linear separability may limit their ability to distinguish overlapping land cover classes, particularly those with complex spectral signatures. CART produces simple, interpretable models in the form of decision trees, making it easy for domain experts and policymakers to understand and trust the results.
+The multinomial logistic regression model serves as a simple and interpretable baseline for land cover classification. Its linear assumptions make it *less suitable* for the inherent non-linear relationships and overlapping boundaries observed in the data, particularly among spectrally similar classes such as “Shrubs” and “Grass/Forb/Herb.” While PCA mitigated multicollinearity among spectral bands by reducing dimensionality, it abstracts raw spectral information, potentially limiting fine-grained class separability. Moreover, the model’s performance is heavily influenced by class imbalance, as evidenced by strong results for majority classes like “Water” and “Trees” but poor performance for underrepresented classes such as “Shrubs” and “Snow/Ice.” Thus, we may need a more flexible, non-linear models to handle the data’s complexity.
 
-## Non-Linear Models
+Nevertheless, a key strength of the multinomial logistic regression model is its interpretability. Coefficients provide clear insights into predictor effects: positive values increase the log-odds of class membership, while negative values decrease it. For instance, the Vegetation Indicator (`Veg:1`) strongly differentiates vegetated classes (“Trees,” “Grass/Forb/Herb”) from non-vegetated ones, aligning with NDVI trends observed during data exploration. Spatial predictors (`EastWest` and `NorthSouth`) capture meaningful geographic patterns, such as the higher prevalence of “Water” and “Trees” in eastern regions.
 
-A common challenge in energy and environmental data analysis is capturing non-linear relationships. 
+NDVI coefficients confirm its ecological relevance, with negative values for “Water” and slight positives for “Impervious,” consistent with their spectral signatures. Principal components (PC1, PC2) show subtle yet interpretable contributions, with PC2 capturing spectral variations for “Trees” and “Snow/Ice.” Seasonal predictors, modeled through polynomial contrasts, reveal non-linear temporal patterns, notably for “Snow/Ice,” which peaks in winter and declines thereafter.
 
-## CART (Classification and Regression Trees) Algorithm
-CART algorithms excel at modeling non-linear and complex interactions between both continuous and categorical variables, which are common in environmental datasets. CART algorithms work well with raw data and require minimal preprocessing, such as scaling or normalization. CART can handle noisy and missing data effectively, making it a reliable choice for datasets with gaps or inconsistencies, which are often seen in environmental monitoring systems. 
-CART forms the foundation of more advanced algorithms like Random Forest and Gradient Boosting, which are often recommended when higher accuracy is needed for predictive modeling. The CART algorithm builds a  single decision tree by recursively splitting the data based on a chosen criterion (e.g., Entropy). Then, it directly assigns a class label to the leaf nodes based on the majority vote in those nodes.
-CART's use of a single decision tree can lead to overfitting, especially when the tree grows deep and captures noise in the training data. To counter this, CART can at times require pruning techniques, which can lead to a tradeoff between bias and variance. However, the interpretability and computational efficiency of CART models are significant advantages, as the decision rules are easy to understand and communicate to stakeholders.
+While the results are interpretable and align with prior observations, the model’s linear constraints and limited handling of class imbalance reduce its effectiveness for minority and complex classes. A more flexible, non-linear approach would better capture the data’s intricacies while maintaining clarity of interpretation.
 
-## Implementation:
-The monthly averages dataset was filtered to points within U.S. borders and assessed in year-wise batches, with unique entries defined by plotid. Landcover classes were dynamically encoded, and visualized on the GEE interface:
-![Map of Visualized Data](sims/actual_map.png)
-The CART model was trained on 70% of the dataset and tested on 30% of the dataset, using predictors: NDVI, SR_B1, SR_B2, SR_B3, SR_B4, SR_B5, SR_B7, elevation_meters (See full code [here](https://code.earthengine.google.com/27be438d2822e76c39af6aece7d61aad)).
-For instance, for 2018, the data sizes were as follows;
-* Total Observations: 24,411
-* Training Set: 16,942 observations
-* Testing Set: 7,469 observations
 
-## Performance Evaluation
-The CART model was evaluated using accuracy, precision, recall, and the kappa coefficient. It earned:
-* An accuracy of 0.553, or 55.3%
-* A kappa coefficient of 0.304
-The classifier incorrectly classified 3339 observations, representing 44.7% of the testing set. There were 30 unique misclassification types, and we observed those 6 with the highest misclassification frequency:
-1. Trees classified as Grass/Forb/Herb (805)
-2. Grass/Forb/Herb classified as Trees (745)
-3. Trees classified as Shrubs (382)
-4. Shrubs classified as Trees (322)
-5. Trees classified as Barren (192)
-6. Barren classified as Trees (153)
-These misclassifications were styled dynamically by type and visualized on the map to explore any geospatial groupings. We see that trees and grass are often misclassified as one another along the northeast, but grass is incorrectly classified as trees in the midwest. This shows that the model struggles to distinguish between these two classes in certain regions, but especially where grass is prevalent.
-![Map of Top 6 Misclassifications Against Actual Values](sims/layeredmap.png)
-Given certain classes appeared to host disproportionate misclassifications (e.g., Trees), we explored misclassification rates, precision, and recall by class, shown in the table. First, misclassification rates were calculated as follows;
+## Temporal Models: Sinusoidal Regression
+
+Seasonal periodicity observed in NDVI and spectral bands indicates that temporal dynamics are not adequately captured by standard linear models. To address this, sinusoidal regression introduces sine and cosine components to model periodic oscillations, which align with seasonal trends and provide a continuous representation of time-varying effects.
+
+### Model Specification:
+
+Sinusoidal regression expresses temporal patterns as a combination of sine and cosine functions, mathematically represented as:
+
 $$
-\text{Misclassification Rate} = \frac{\text{Misclassified Points in Class}}{\text{Total Points in Class}}
+f(t) = A \cdot \sin(2 \pi f t + \phi) + B \cdot \cos(2 \pi ft + \phi)
 $$
 
-While all classes have moderate to high misclassification rates, Snow, Impervious, Shrubs and Barren had significantly larger rates than other classes. The dispersion between rates is likely due to class imbalance in the training data, as certain classes were highly underrepresented relative to others, like Snow/ice (2 occurrences) against Grass/forb/herb (8,825 occurrences). Next, the two errors contributing to misclassification, predicting false positives and false negatives, was observed by calculating precision and recall. Precision by class  measures the proportion of true positive predictions out of all positive predictions made by the model:
+Here:
+
+-   $t$ represents the temporal variable (e.g., the numeric representation of `season`)
+-   $A$ and $B$ are the amplitude coefficients, which are estimated during model training. These coefficients determine the magnitude of the oscillation and capture the contribution of the sine and cosine terms to the overall periodic pattern.
+-   $f$ denotes the frequency of the oscillation, which corresponds to the natural periodicity of the phenomenon under study. For seasonal data divided into four quarters (Winter, Spring, Summer, Fall), $f = \frac{1}{4}$, indicating one full cycle per year.
+-   $\phi$ represents the phase shift, accounting for the starting point of the oscillation. Since the data aligns naturally with the seasons (e.g., starts in the Winter), we assume $\phi$ to be 0 to simplify the model.
+
+Thus, we extend the multinomial logistic regression model by incorporating sine and cosine transformations of the seasonal variable:
+
 $$
-\text{Precision} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}
+P(y=c | X, t) = 
+\frac{
+\exp(\beta_{c_0} + \beta^\top_{c}X + \alpha_c \sin(2\pi ft) + \gamma_c \cos(2\pi ft))
+}
+{
+\sum_{k=1}^{K} \exp(\beta_{k_0} + \beta^\top_{k}X + \alpha_k \sin(2\pi ft) + \gamma_k \cos(2\pi ft))
+},
 $$
-Recall by class measures the proportion of true positive predictions out of all actual positive instances in the dataset:
+
+where $\alpha_c$ and $\gamma_c$ represent the class-specific coefficients for the sine and cosine terms, respectively—quantifying how temporal periodicity influences the log-odds of classification into each land cover class.
+
+### Implementation:
+
+#### Fourier Transformation
+
+```{r, echo=FALSE, fig.width=8, fig.height=4}
+ndvi_monthly <- monthly_clean |>
+  group_by(month) |>
+  summarize(mean_ndvi = mean(ndvi, na.rm = TRUE)) |>
+  arrange(month)
+
+ggplot(ndvi_monthly, aes(x = month, y = mean_ndvi)) +
+  geom_line(group = 1, color = "darkgreen") +
+  geom_point(size = 2, color = "darkred") +
+  theme_minimal() +
+  labs(title = "Monthly Mean NDVI", x = "Month", y = "Mean NDVI") +
+  theme_pub()
+```
+
+```{r, echo=FALSE}
+if (REPRODUCE) {
+  # Subtract mean NDVI to remove DC component
+  ndvi_detrended <- ndvi_monthly$mean_ndvi - mean(ndvi_monthly$mean_ndvi)
+  
+  # Perform FFT on detrended NDVI
+  fft_result <- fft(ndvi_detrended)
+  frequencies <- seq(0, 0.5, length.out = length(fft_result) / 2 + 1)
+  magnitudes <- Mod(fft_result)[1:(length(fft_result) / 2 + 1)]
+  
+  # Identify dominant frequency
+  dominant_freq <- frequencies[which.max(magnitudes)]
+  
+  # results
+  list(
+    frequencies = frequencies |> fractions(),
+    magnitudes = magnitudes,
+    dominant_frequency = dominant_freq |> fractions()
+  )
+  
+  # 1/12 is dominant frequency after DC
+}
+```
+
+```{r, echo=FALSE}
+# Encode month as a numeric variable (1 = January, ..., 12 = December)
+month_numeric <- as.numeric(monthly_clean$month)
+
+# Frequency for annual cycle
+freq_month <- 1 / 12
+
+# sine and cosine features
+monthly_clean$sin_month <- sin(2 * pi * freq_month * month_numeric)
+monthly_clean$cos_month <- cos(2 * pi * freq_month * month_numeric)
+```
+
+To account for the clear seasonal periodicity observed in `NDVI`, we performed a Fourier Transformation to identify the dominant frequency driving temporal oscillations. This step was motivated by the strong seasonal trends observed in the data, where `NDVI` peaks during the summer months and declines in winter, reflecting vegetation growth cycles. The Fourier Transformation decomposes the `NDVI` time series into its constituent frequencies, allowing us to quantify periodic patterns and determine the most significant frequency contributing to the observed variations.
+
+The results of the Fourier Transformation indicate that the dominant frequency corresponds to $f=\frac{1}{12}$, representing a single annual cycle. This frequency accounts for the majority of the variance in `NDVI`, while higher-order frequencies have negligible contributions. This finding confirms that `NDVI` follows a regular, annual oscillatory pattern, which aligns with ecological expectations of seasonal vegetation changes.
+
+To incorporate this seasonality into the multinomial regression model, we transformed the `month` variable into two sinusoidal features: $\sin(2\pi \cdot f \cdot \text{month})$ and $\cos(2\pi \cdot f \cdot \text{month})$. These sine and cosine terms capture the periodic nature of `NDVI` across months, providing a smooth representation of temporal trends. By including these derived features as predictors, the model gains the ability to account for seasonal variations in a flexible yet interpretable manner, enhancing its capacity to distinguish between land cover classes with strong temporal signals, such as “Grass/Forb/Herb” and “Snow/Ice.”
+
+```{r, echo=FALSE}
+# Standardize continuous predictors
+standardized_predictors <- scale(data.frame(
+  PC1 = pca_bands$x[, 1],                     # First PC
+  PC2 = pca_bands$x[, 2],                     # Second PC
+  NDVI = monthly_clean$ndvi,                  # NDVI
+  Elevation = monthly_clean$elevation_meters, # Elevation
+  Sin_Month = monthly_clean$sin_month,        # Sine of month
+  Cos_Month = monthly_clean$cos_month         # Cosine of month
+))
+
+model_data <- data.frame(
+  standardized_predictors,                          # Standardized continuous predictors
+  Veg = factor(monthly_clean$veg),                  # Vegetation indicator
+  EastWest = factor(monthly_clean$east_west),       # Spatial: East/West
+  NorthSouth = factor(monthly_clean$north_south),   # Spatial: North/South
+  Outcome = monthly_clean$dominant_landcover        # Target: Land Cover Class
+)
+
+if (REPRODUCE) {
+  # Fit multinomial logistic regression
+  logistic_model <- multinom(Outcome ~ ., data = model_data)
+  saveRDS(logistic_model, "sims/log_model_tmprl_month.RDS")
+} else {
+  logistic_model <- readRDS("sims/log_model_tmprl_month.RDS")
+}
+```
+
+### Performance Evaluation:
+
+Model performance is evaluated using accuracy, precision, recall, and F1-score.
+
+```{r, echo=FALSE}
+if (REPRODUCE) {
+  set.seed(425)
+  predictions <- predict(logistic_model, model_data)  # Predicted classes
+  true_labels <- model_data$Outcome                   # True labels
+  
+  # Confusion matrix
+  conf_matrix <- confusionMatrix(
+    data = factor(predictions, levels = levels(true_labels)), 
+    reference = factor(true_labels, levels = levels(true_labels))
+  )
+  
+  # Class-wise metrics
+  class_metrics <- as.data.frame(conf_matrix$byClass) |> 
+    select(-'Sensitivity', -'Specificity', -'Pos Pred Value', -'Neg Pred Value', -'Prevalence', -'Detection Prevalence', -'Detection Rate')
+  
+  # Macro-averages for Recall, Precision, and F1-score
+  macro_avg <- colMeans(class_metrics)
+  
+  (results_table <- class_metrics |> 
+    rbind(macro_avg))
+}
+```
+
 $$
-\text{Recall} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Balanced Accuracy} \\ \hline
+\text{Barren} & 0.8541 & 0.9160 & 0.8839 & 0.9545 \\ \hline
+\text{Grass/Forb/Herb} & 0.6403 & 0.7789 & 0.7029 & 0.7085 \\ \hline
+\text{Impervious} & 0.4729 & 0.2320 & 0.3112 & 0.6144 \\ \hline
+\text{Shrubs} & 0.0555 & 0.0027 & 0.0052 & 0.4993 \\ \hline
+\text{Snow/Ice} & 0.4706 & 0.0352 & 0.0656 & 0.5176 \\ \hline
+\text{Trees} & 0.6396 & 0.6003 & 0.6193 & 0.7208 \\ \hline
+\text{Water} & 0.9059 & 0.9357 & 0.9206 & 0.9630 \\ \hline
+\textbf{Macro Averaged} & \textbf{0.5770} & \textbf{0.5001} & \textbf{0.5012} & \textbf{0.7112} \\ \hline
+\end{array}
 $$
-When precision is less than recall for a given class, it suggests the model is overpredicting that class, resulting in many false positives. The table shows that Water, Grass/forb/herb and Barren are often incorrectly predicted for a certain point, which makes sense given their large representation in the training data. Conversely, when recall is less than precision, the model is underpredicting that class, resulting in many false negatives. For example, Trees and Shrubs are often missed by the model. Given these classes are not underrepresented in the training data, the model may be struggling to distinguish between them and other classes due to their similar spectral signatures.
-
-| Landcover Type | Misclassifications | Misclassification Rate | Precision  | Recall  |
-|----------------|--------------------|------------------------|------------|---------|
-|Water           | 87                 | 0.24                   | 0.75       | 0.77    |
-|Grass/forb/herb | 935                | 0.44                   | 0.55       | 0.56    |
-|Trees           | 1502               | 0.38                   | 0.65       | 0.62    |
-|Shrubs          | 498                | 0.79                   | 0.20       | 0.21    |
-|Barren          | 226                | 0.69                   | 0.25       | 0.3     |
-|Impervious      | 90                 | 0.93                   | 0.06       | 0.07    |
-|Snow/Ice        | 1                  | 1.00                   | 0.00       | 0.00    |
-
-
-The results reveal that the CART model, while providing a simple and interpretable solution, struggles to accurately classify land cover types due to the complexity of the data, and perhaps the lack of abundant labels proportionate to the geographic area covered by the dataset. To further our analysis, we created a second CART algorithm that uses our entire dataset as training in order to classify all pixels in a satellite image, from which the algorithm pulls new band values (see full code [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6)). Given the time and computational power required to analyze such large satellite datasets, we focused on the state of New York for this application of the CART algorithm. The model was then evaluated on a 2018 image, and the results were visualized on the GEE interface:
 
 
 
-
-and the limitations of a single decision tree. The model's performance is hindered by the high misclassification rates, particularly for classes with similar spectral signatures or underrepresented in the training data. To improve classification accuracy and address these challenges, we will explore ensemble methods like Random Forests, which can capture non-linear relationships and interactions more effectively.
-
-## Random Forests
+## Non-Linear Models: Random Forests
 
 Given the limitations of linear models, Random Forests are introduced to capture non-linear relationships and feature interactions. Random Forests are ensemble models that construct multiple decision trees and combine their outputs to improve classification accuracy.
 
@@ -663,7 +857,7 @@ Random Forests make no assumptions about the functional form of the predictors a
 ###Implementation: The Random Forest model will include all predictors used in the multinomial model. Spatial aggregates (e.g., neighborhood means of NDVI) will be introduced as additional features to capture local spatial dependencies.
 
 
-```{r}
+```{r, echo=FALSE}
 if (REPRODUCE) {
   # Define the hyperparameter grid
   num_trees_list <- c(50, 100)          # Number of trees
@@ -675,9 +869,6 @@ if (REPRODUCE) {
                          mtry = mtry_list,
                          max_depth = max_depth_list,
                          OOB_error = NA)
-  results <- readRDS("sims/rf_results.RDS")
-  results <- results |> filter(num_trees != 200)
-  
   
   # Loop through hyperparameters and fit models
   for (i in 11:nrow(results)) {
@@ -715,10 +906,28 @@ if (REPRODUCE) {
 The Random Forest model will be evaluated using out-of-bag (OOB) error, accuracy, precision, recall, and F1-score. Variable importance plots will help identify the most influential predictors.
 
 ```{r, echo=FALSE}
-# Variable importance
-# importance <- importance(rf_model)
-# varImpPlot(rf_model)
+importance <- rf_model$variable.importance
+
+importance_df <- data.frame(
+  Variable = names(importance),
+  Importance = importance
+)
+
+importance_df <- importance_df[order(-importance_df$Importance), ]
+
+ggplot(importance_df,
+       aes(x = reorder(Variable, Importance),
+           y = Importance)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Variable Importance",
+    x = "Predictor Variables",
+    y = "Importance"
+  ) +
+  theme_pub()
 ```
+
 
 ### Interpretation:
 
@@ -727,35 +936,6 @@ Random Forests provide insights into the relative importance of predictors, high
 ### Appropriateness:
 
 Random Forests are well-suited for this problem, as they can handle overlapping class boundaries and complex interactions without requiring prior assumptions about the data. However, they lack interpretability compared to linear models.
-
-## Temporal Models: Sinusoidal Regression
-
-To account for seasonal periodicity observed in NDVI and spectral bands, we introduce sinusoidal regression, which models temporal oscillations as sine and cosine components. These derived features will be incorporated into both linear and non-linear models.
-
-### Model Specification:
-
-$$
-f(t) = A \cdot \sin(2 \pi f t + \phi) + B \cdot \cos(2 \pi ft + \phi)
-$$
-
-Here:
-
--   $t$ represents the temporal variable (e.g., the numeric representation of `season`)
--   $A$ and $B$ are the amplitude coefficients, which are estimated during model training. These coefficients determine the magnitude of the oscillation and capture the contribution of the sine and cosine terms to the overall periodic pattern.
--   $f$ denotes the frequency of the oscillation, which corresponds to the natural periodicity of the phenomenon under study. For seasonal data divided into four quarters (Winter, Spring, Summer, Fall), $f = \frac{1}{4}$, indicating one full cycle per year.
--   $\phi$ represents the phase shift, accounting for the starting point of the oscillation. Since the data aligns naturally with the seasons (e.g., starts in the Winter), we assume $\phi$ to be 0 to simplify the model.
-
-Implementation:
-
-```{r, echo=FALSE}
-# # Create sine/cosine features
-# model_data$sin_month <- sin(2 * pi * as.numeric(model_data$Season) / 4)
-# model_data$cos_month <- cos(2 * pi * as.numeric(model_data$Season) / 4)
-# 
-# # Fit sinusoidal regression (logistic model example)
-# sinusoidal_model <- multinom(Outcome ~ sin_month + cos_month + NDVI, data = model_data)
-# summary(sinusoidal_model)
-```
 
 ## Model Comparison and Validation
 
