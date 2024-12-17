@@ -476,7 +476,7 @@ The task involves predicting the dominant land cover class (`dominant_landcover`
 
 -   Outcome ($y$): The target variable is `dominant_landcover`, representing land cover classes such as “Trees,” “Water,” “Snow/Ice,” etc.
 
-## Baseline Models: Multinomial Logistic Regression Model
+## Baseline Model: Multinomial Logistic Regression
 
 ### Assumptions:
 
@@ -490,7 +490,7 @@ $$
 P(y=c | X) = \frac{\exp(\beta_{c_0} + \beta^\top_{c}X)}{\sum_{k=1}^{K} \exp(\beta_{k_0} + \beta^\top_{k}X)}
 $$
 
-where $X$ represents the predictors (spectral bands, NDVI, temporal features), $\beta_c$ is the vector of coefficients for class $c$, and $\beta_{c_0}$ is the intercept for class $c$. 
+where $X$ represents the predictors (spectral bands, NDVI, temporal features), $\beta_c$ is the vector of coefficients for class $c$, and $\beta_{c_0}$ is the intercept for class $c$.
 
 The model estimates $\beta$ using maximum likelihood estimation to minimize the discrepancy between the predicted and observed probabilities.
 
@@ -535,7 +535,6 @@ The scree plot of explained variance demonstrates that the first principal compo
 Given this pattern, we retain only PC1 and PC2 for downstream modeling, as they account for the vast majority of the variance in the spectral bands while significantly reducing dimensionality. Selecting only PC1 and PC2 simplifies the model and improves computational efficiency while maintaining the interpretability of the dominant trends in the spectral bands.
 
 We proceed to fit the multinomial logistic regression model using PC1, PC2, `NDVI`, `season`, `elevation_meters`, `veg`, `east_west`, and `north_south` as predictors. We standardize the continuous predictors to have mean 0, standard deviation 1 to ensure that coefficients are on the same scale and interpretability is consistent across features.
-
 
 ```{r, echo=FALSE}
 # Standardize continuous predictors
@@ -597,6 +596,8 @@ if (REPRODUCE) {
 ```
 
 $$
+\textbf{Table: Performance Evaluation of Multinomial Regression Model}
+\\
 \begin{array}{|l|c|c|c|c|}
 \hline
 \textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Balanced Accuracy} \\ \hline
@@ -657,7 +658,7 @@ if (REPRODUCE) {
 
 The heatmap of coefficients provides an empirical representation of the multinomial logistic regression model, offering insights into how each predictor influences the relative log-odds of classification into a specific land cover class. Each cell represents the coefficient for a predictor-class pair, where positive values indicate an increase in the log-odds of a pixel belonging to that class, while negative values denote a decrease relative to the reference category. Notably, the Vegetation Indicator (`Veg:1`) exhibits the largest positive coefficients across vegetated classes such as “Trees,” “Shrubs,” and “Grass/Forb/Herb”, compared to the non-vegetated reference category (`Veg:0`). This result aligns with observations from the data exploration phase, where vegetated classes consistently demonstrated high NDVI values and distinct spectral patterns indicative of healthy vegetation. Conversely, non-vegetated classes, including “Water,” “Snow/Ice,” and “Impervious,” display negligible or negative coefficients for `Veg:1`, reflecting their spectral dissimilarity from vegetated surfaces.
 
-The intercept terms, particularly for “Grass/Forb/Herb” and “Trees,” are non-negligible and negative, suggesting higher baseline probabilities for these majority classes when all predictors are at their reference values. This observation reinforces the class distribution imbalance observed during the outcome exploration, where these vegetated classes accounted for over 75% of all observations. 
+The intercept terms, particularly for “Grass/Forb/Herb” and “Trees,” are non-negligible and negative, suggesting higher baseline probabilities for these majority classes when all predictors are at their reference values. This observation reinforces the class distribution imbalance observed during the outcome exploration, where these vegetated classes accounted for over 75% of all observations.
 
 The spatial predictors, `EastWest` and `NorthSouth`, reveal distinct trends. `EastWest:West` shows the largest negative coefficients for “Water” and “Trees”, indicating a reduced likelihood of these classes occurring in the western regions. Conversely, “Grass/Forb/Herb” and “Shrubs” display smaller negative coefficients, suggesting a more balanced east-west distribution for these classes. This trend aligns with geographic observations, where dense vegetation (trees) and water bodies are more prominent in the eastern United States. `NorthSouth:South`, on the other hand, exhibits negligible coefficients across most classes, with a modest negative value for “Snow/Ice”. This pattern is consistent with the climatological expectation that snow and ice are less likely to appear in southern regions closer to the equator, where temperatures are higher.
 
@@ -679,8 +680,7 @@ NDVI coefficients confirm its ecological relevance, with negative values for “
 
 While the results are interpretable and align with prior observations, the model’s linear constraints and limited handling of class imbalance reduce its effectiveness for minority and complex classes. A more flexible, non-linear approach would better capture the data’s intricacies while maintaining clarity of interpretation.
 
-
-## Temporal Models: Sinusoidal Regression
+## Temporal Model: Sinusoidal Multinomial Logistic Regression
 
 Seasonal periodicity observed in NDVI and spectral bands indicates that temporal dynamics are not adequately captured by standard linear models. To address this, sinusoidal regression introduces sine and cosine components to model periodic oscillations, which align with seasonal trends and provide a continuous representation of time-varying effects.
 
@@ -784,7 +784,7 @@ standardized_predictors <- scale(data.frame(
   Cos_Month = monthly_clean$cos_month         # Cosine of month
 ))
 
-model_data <- data.frame(
+model_data_tmprl <- data.frame(
   standardized_predictors,                          # Standardized continuous predictors
   Veg = factor(monthly_clean$veg),                  # Vegetation indicator
   EastWest = factor(monthly_clean$east_west),       # Spatial: East/West
@@ -794,22 +794,22 @@ model_data <- data.frame(
 
 if (REPRODUCE) {
   # Fit multinomial logistic regression
-  logistic_model <- multinom(Outcome ~ ., data = model_data)
+  logistic_model <- multinom(Outcome ~ ., data = model_data_tmprl)
   saveRDS(logistic_model, "sims/log_model_tmprl_month.RDS")
 } else {
   logistic_model <- readRDS("sims/log_model_tmprl_month.RDS")
 }
 ```
 
-### Performance Evaluation:
+### Performance Evaluation and Interpretation:
 
-Model performance is evaluated using accuracy, precision, recall, and F1-score.
+As done previously, model performance is evaluated using accuracy, precision, recall, and F1-score. Given the substantially similar performance and coefficients, we extend our previous discussion of the multinomial logistic regression model and focus more on the utility of the Fourier-transformed `month` variable.
 
 ```{r, echo=FALSE}
 if (REPRODUCE) {
   set.seed(425)
-  predictions <- predict(logistic_model, model_data)  # Predicted classes
-  true_labels <- model_data$Outcome                   # True labels
+  predictions <- predict(logistic_model, model_data_tmprl)  # Predicted classes
+  true_labels <- model_data_tmprl$Outcome                   # True labels
   
   # Confusion matrix
   conf_matrix <- confusionMatrix(
@@ -829,7 +829,41 @@ if (REPRODUCE) {
 }
 ```
 
+```{r, echo=FALSE, out.width="100%", fig.width=8, fig.height=4}
+if (REPRODUCE) {
+  # Extract coefficients
+  coefficients <- summary(logistic_model)$coefficients
+  
+  coef_long <- as.data.frame(coefficients) |>
+    rownames_to_column("Predictor") |>
+    pivot_longer(-Predictor, names_to = "Class", values_to = "Coefficient")
+  
+  # Create heatmap
+  (p <- ggplot(coef_long, aes(x = Class, y = Predictor, fill = Coefficient)) +
+    geom_tile() +
+    scale_fill_gradient2(low = "darkred", mid = "white", high = "darkgreen", midpoint = 0) +
+    theme_pub() +
+    labs(
+      title = "Heatmap of Coefficients by Predictor and Class",
+      x = "Predictor", y = "Class", fill = "Coefficient"
+    ) +
+    theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      legend.text = element_text(size = 6),
+      legend.title = element_text(size = 10),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+      axis.text.y = element_text(size = 10)
+    ))
+  
+  ggsave("sims/tmprl_multinom_model_coeffs_heatmap.png", plot = p, width = 8, height = 6, dpi = 300)
+} else {
+  knitr::include_graphics("sims/tmprl_multinom_model_coeffs_heatmap.png")
+}
+```
+
 $$
+\textbf{Table: Performance Evaluation of Sinusoidal Multinomial Regression Model}
+\\
 \begin{array}{|l|c|c|c|c|}
 \hline
 \textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Balanced Accuracy} \\ \hline
@@ -844,18 +878,33 @@ $$
 \end{array}
 $$
 
+Incorporating sinusoidal transformations of the month variable, represented as sine and cosine terms, aimed to address the observed periodicity in the temporal predictors, particularly the cyclical pattern of NDVI over the calendar year. These periodic components, theoretically, enable the model to account for annual and seasonal temporal cycles, such as vegetation growth peaking during summer and snow cover during winter. Mathematically, the sine and cosine features capture temporal effects in a continuous manner *without* relying on categorical representations, thus aligning more closely with periodic phenomena in the data.
 
+Performance evaluation of the sinusoidal multinomial regression model, however, reveals negligible improvements over the baseline multinomial logistic regression. Class-specific metrics such as precision, recall, and F1-score exhibit minimal or no meaningful gains, as demonstrated by the macro-averaged F1-score (0.5012) and balanced accuracy (0.7112), which remain nearly identical to the baseline results (0.5002 & 0.7109, respectively). Classes such as “Snow/Ice,” where stronger temporal signals were anticipated, show only marginal changes in predictive accuracy. While the sine term exhibits a weak negative coefficient for “Snow/Ice,” the cosine term remains near zero across all classes, indicating that these temporal features contribute minimally to class separation. This suggests that the seasonal patterns captured by the sinusoidal terms are insufficient to meaningfully enhance this model’s discriminatory power.
 
-## Non-Linear Models: Random Forests
+From an interpretability standpoint, the inclusion of sinusoidal features complicates the model without adding substantial value. While the baseline model relied on simpler, more interpretable predictors, the sinusoidal terms introduce an additional layer of complexity. The resulting coefficients for `sin_month` and `cos_month` are not intuitive to interpret, especially for non-technical stakeholders. Moreover, the near-zero influence of these coefficients further diminishes their utility, as they fail to capture meaningful temporal variability beyond what was already modeled by existing predictors like `NDVI` and `season`.
 
-Given the limitations of linear models, Random Forests are introduced to capture non-linear relationships and feature interactions. Random Forests are ensemble models that construct multiple decision trees and combine their outputs to improve classification accuracy.
+Thus, while the sinusoidal regression approach is—*theoretically*—well-suited for periodic data, its empirical performance in this case does not justify the added complexity. The marginal improvements in predictive metrics, coupled with reduced interpretability, suggest that simpler temporal representations such as categorical season remain sufficient for this dataset.
+
+## Non-Linear Model: Random Forests
+
+While multinomial logistic regression serves as a baseline model for land cover classification, its performance is limited by the linearity assumption and its inability to model complex feature interactions. Given the inherently non-linear relationships present in remote sensing data, such as interactions between spectral bands, elevation, and seasonal patterns, a more flexible modeling approach is required. Random Forests, a popular ensemble learning method, address these limitations by constructing multiple decision trees and aggregating their predictions to improve accuracy and robustness. Unlike linear models, Random Forests can naturally handle multicollinearity, complex decision boundaries, and interactions between predictors without requiring explicit feature engineering.
 
 ### Assumptions:
 
-Random Forests make no assumptions about the functional form of the predictors and outcomes, making them highly flexible for complex datasets. They can handle multicollinearity, non-linear relationships, and high-dimensional predictors effectively.
+Random Forests are non-parametric models that make no assumptions about the functional relationship between the predictors and the outcome variable. This flexibility allows them to capture both non-linearities and hierarchical feature relationships effectively. Additionally, Random Forests are robust to overfitting due to their bagging (bootstrap aggregation) strategy, where each tree is trained on a random subset of the data, and only a random subset of predictors is considered at each split. Out-of-bag (OOB) error, a unique feature of Random Forests, provides an internal measure of model performance without requiring a separate validation dataset, thus maximizing data utilization.
 
-###Implementation: The Random Forest model will include all predictors used in the multinomial model. Spatial aggregates (e.g., neighborhood means of NDVI) will be introduced as additional features to capture local spatial dependencies.
+###Implementation:
 
+The Random Forest model was implemented with the same predictors as those used in the original multinomial logistic regression model. Hyperparameter tuning was performed to optimize three key parameters:
+
+1.  Number of Trees (`num_trees`): The total number of decision trees in the ensemble. We tested values: 50 and 100.
+
+2.  Features per Split (`mtry`): The number of predictors randomly sampled at each node split. We tested values: 2, 4, and 6.
+
+3.  Maximum Tree Depth (`max_depth`): The maximum depth allowed for each decision tree. We tested values: 10, 15, and 20.
+
+A grid search approach was used to systematically evaluate all combinations of these hyperparameters. For each combination, the Random Forest was trained using bootstrap sampling, and the Out-of-Bag (OOB) error was recorded as a measure of predictive performance. The table below summarizes the results of the grid search, highlighting the combination of hyperparameters that minimized the OOB error.
 
 ```{r, echo=FALSE}
 if (REPRODUCE) {
@@ -901,9 +950,86 @@ if (REPRODUCE) {
 }
 ```
 
+$$
+\textbf{Table: Random Forest Grid Search Results with Out-of-Bag (OOB) Error}
+\\
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Number of Trees} & \textbf{Features per Split (mtry)} & \textbf{Max Depth} & \textbf{OOB Error} \\ \hline
+50  & 2 & 10 & 0.2820 \\ \hline
+100 & 2 & 10 & 0.2812 \\ \hline
+50  & 4 & 10 & 0.2750 \\ \hline
+100 & 4 & 10 & 0.2746 \\ \hline
+50  & 6 & 10 & 0.2744 \\ \hline
+100 & 6 & 10 & 0.2744 \\ \hline
+50  & 2 & 15 & 0.2756 \\ \hline
+100 & 2 & 15 & 0.2745 \\ \hline
+50  & 4 & 15 & 0.2664 \\ \hline
+100 & 4 & 15 & 0.2659 \\ \hline
+50  & 6 & 15 & 0.2659 \\ \hline
+100 & 6 & 15 & 0.2654 \\ \hline
+50  & 2 & 20 & 0.2749 \\ \hline
+100 & 2 & 20 & 0.2737 \\ \hline
+50  & 4 & 20 & 0.2640 \\ \hline
+\textbf{100} & \textbf{4} & \textbf{20} & \textbf{0.2631} \\ \hline
+50  & 6 & 20 & 0.2645 \\ \hline
+100 & 6 & 20 & 0.2636 \\ \hline
+\end{array}
+$$
+
+The results show that the optimal hyperparameters are 100 trees, 4 features per split (`mtry`), and a maximum depth of 20, which achieved the lowest OOB error of 0.2631. Increasing the number of trees from 50 to 100 consistently led to slight improvements in performance, particularly for deeper trees (max depth = 20), as it reduced the variance of the ensemble. The choice of mtry = 4 balanced the trade-off between introducing randomness and maintaining sufficient feature relevance at each split. The values tested were determined in line with our limited computational power.
+
 ### Performance Evaluation:
 
-The Random Forest model will be evaluated using out-of-bag (OOB) error, accuracy, precision, recall, and F1-score. Variable importance plots will help identify the most influential predictors.
+Using the optimal hyperparameters, the final Random Forest model was trained on the entire dataset. The performance of the model was evaluated using the same metrics as the multinomial logistic regression, including precision, recall, F1-score, and balanced accuracy for each land cover class. These metrics allow for a direct comparison with the previous models and provide insights into the Random Forest’s ability to handle underrepresented classes and complex relationships between predictors. Additionally, variable importance measures were derived to identify the most influential predictors contributing to classification performance.
+
+```{r, echo=FALSE}
+if (REPRODUCE) {
+  # Predictions
+  set.seed(425)
+  rf_predictions <- predict(rf_model, data = model_data)$predictions
+  true_labels <- model_data$Outcome
+  
+  # Confusion matrix
+  rf_conf_matrix <- confusionMatrix(
+    data = factor(rf_predictions, levels = levels(true_labels)),
+    reference = factor(true_labels, levels = levels(true_labels))
+  )
+  
+  # Class-wise metrics
+  rf_metrics <- as.data.frame(rf_conf_matrix$byClass) |> 
+    dplyr::select(Precision, Recall, F1, "Balanced Accuracy")
+  
+  # Macro-averaged metrics
+  macro_avg_rf <- colMeans(rf_metrics)
+  
+  (results_table <- rf_metrics |> 
+    rbind(macro_avg_rf))
+}
+```
+
+$$
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Class}               & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Balanced Accuracy} \\ \hline
+\textbf{Barren}              & 0.9713             & 0.9860          & 0.9786      & 0.9923                     \\ \hline
+\textbf{Grass/Forb/Herb}     & 0.7364             & 0.8842          & 0.8036      & 0.8112                     \\ \hline
+\textbf{Impervious}          & 0.9074             & 0.9379          & 0.9224      & 0.9684                     \\ \hline
+\textbf{Shrubs}              & 0.9621             & 0.1404          & 0.2450      & 0.5700                     \\ \hline
+\textbf{Snow/Ice}            & 1.0000             & 0.9471          & 0.9729      & 0.9736                     \\ \hline
+\textbf{Trees}               & 0.7961             & 0.7450          & 0.7697      & 0.8277                     \\ \hline
+\textbf{Water}               & 0.9963             & 0.9849          & 0.9906      & 0.9923                     \\ \hline
+\textbf{Macro Averaged}      & \textbf{0.9099}    & \textbf{0.8037} & \textbf{0.8118} & \textbf{0.8765}        \\ \hline
+\end{array}
+$$
+
+The Random Forest model demonstrates significant advancements over the multinomial logistic regression approaches, effectively addressing key limitations such as class imbalance, non-linear relationships, and feature interactions. By leveraging ensemble learning, Random Forests construct multiple decision trees, enabling the model to capture complex patterns and decision boundaries that were inaccessible to linear models. This flexibility is particularly beneficial for remote sensing data, where spectral, spatial, and temporal relationships are inherently non-linear and often exhibit overlapping class distributions.
+
+The model’s performance highlights its strengths in accurately classifying dominant land cover classes as well as improving results for underrepresented categories. For classes such as “Water”, “Barren”, and “Impervious”, the Random Forest achieves near-perfect classification, with F1-scores exceeding 0.92. Specifically, “Water” achieves a precision of 0.996 and recall of 0.985, reflecting the model’s ability to distinguish spectrally distinct classes with high confidence. This improvement extends to minority classes that were poorly handled by the multinomial regression models. For example, the “Snow/Ice” class, which previously exhibited an F1-score as low as 0.07, now achieves a robust 0.973, driven by a recall of 0.947. Such gains indicate the model’s capacity to capture subtle seasonal and spectral signals associated with this class. Similarly, the “Shrubs” class, which remained nearly undetected in previous models, now achieves an F1-score of 0.245, although challenges persist with its relatively low recall of 0.140. This partial improvement can be attributed to the spectral overlap between “Shrubs” and other vegetated classes such as “Grass/Forb/Herb” and “Trees”, highlighting a persistent difficulty in resolving spectrally similar land cover types.
+
+The macro-averaged performance metrics further underscore the Random Forest model’s effectiveness. With a precision of 0.910, recall of 0.804, and F1-score of 0.812, the Random Forest *significantly* outperforms the multinomial models. The balanced accuracy of 0.877 indicates that the model achieves reliable classification performance across all classes, mitigating the biases observed previously where dominant classes were disproportionately favored. These results demonstrate the Random Forest’s robustness to class imbalance and its ability to generalize well across diverse land cover categories.
+
+### Interpretation:
 
 ```{r, echo=FALSE}
 importance <- rf_model$variable.importance
@@ -922,30 +1048,29 @@ ggplot(importance_df,
   coord_flip() +
   labs(
     title = "Variable Importance",
-    x = "Predictor Variables",
+    x = "Predictor",
     y = "Importance"
   ) +
   theme_pub()
 ```
 
-
-### Interpretation:
-
-Random Forests provide insights into the relative importance of predictors, highlighting which spectral, temporal, and spatial features contribute most to land cover classification. #? For example, NDVI and PCA-derived features are expected to rank highly, given their ecological relevance.
+The variable importance analysis provides additional insights into the predictors driving model performance. The Vegetation Indicator (`Veg`) emerges as the most influential variable, followed closely by `Elevation` and `NDVI`, reinforcing their ecological relevance in distinguishing between vegetated and non-vegetated classes. Principal components (`PC1`, `PC2`), derived previously through dimensionality reduction, also exhibit high importance, validating their role in summarizing the spectral information from the original bands. Spatial features such as `North/South` and temporal predictors like `Season` contribute somewhat, although to a much lesser extent.
 
 ### Appropriateness:
 
-Random Forests are well-suited for this problem, as they can handle overlapping class boundaries and complex interactions without requiring prior assumptions about the data. However, they lack interpretability compared to linear models.
+The Random Forest model proves highly appropriate for the land cover classification task, given the complex nature of the data, which includes non-linear relationships, overlapping class boundaries, and interactions among predictors. Unlike linear models, Random Forests make no assumptions about the underlying data structure, allowing them to effectively capture the non-linear and hierarchical patterns often inherent in remote sensing datasets. The ability of Random Forests to incorporate a wide range of predictors—spectral bands, elevation, NDVI, spatial, and temporal variables—further demonstrates their suitability for this problem. Though robust to multicollinearity, we included the principal components of the spectral bands instead of the bands themselves for computational efficiency.
+
+The performance evaluation of the Random Forest provides strong evidence of its predictive ability and fit for this data. The model achieves significant improvements across precision, recall, F1-score, and balanced accuracy, particularly for minority and previously underperforming classes. The macro-averaged F1-score of 0.812 and balanced accuracy of 0.877 highlight the model’s ability to generalize across all land cover categories, effectively addressing the class imbalance that hampered multinomial logistic regression. Dominant classes such as “Water” and “Barren” maintain near-perfect classification, while substantial improvements for “Snow/Ice” and “Shrubs” validate the model’s capacity to handle underrepresented and spectrally ambiguous classes. These measures of fit underscore the Random Forest’s superior predictive performance and adaptability to complex classification tasks.
+
+Despite its strong predictive ability, interpretability remains a key limitation of the Random Forest model. While linear models like multinomial regression provide explicit coefficients that quantify the effect of each predictor, Random Forests operate as an ensemble of decision trees, making it difficult to trace *specific* decision-making pathways. Variable importance measures offer a high-level understanding of predictor relevance, as seen with `Veg`, `Elevation`, and `NDVI` emerging as critical variables; however, they do not provide insights into the specific relationships or interactions driving individual predictions. This complexity poses challenges when explaining the model to non-technical audiences, as the lack of clear, interpretable coefficients limits transparency. For technical audiences, the variable importance plots and performance metrics offer valuable insights but require familiarity with ensemble methods to fully appreciate the results.
+
+The computational demands of Random Forests further contribute to their trade-offs. The hyperparameter tuning process, involving grid search over combinations of tree count, feature sampling, and tree depth, increases training time, particularly for large datasets. However, the resulting improvements in performance justify this computational cost. Moreover, the ability to measure Out-of-Bag (OOB) error during training maximizes data utilization and reduces the need for an additional validation set, which is particularly advantageous for resource-constrained settings.
+
+Overall, the Random Forest model is highly appropriate for this land cover classification problem, excelling in addressing non-linear relationships, class imbalance, and complex feature interactions without requiring stringent assumptions about the data. Its strong performance metrics affirm its predictive ability and robustness, making it a powerful tool for remote sensing applications. However, the limited interpretability of the model and its computational intensity present challenges for transparency and communication, particularly for non-technical stakeholders.
 
 ## Model Comparison and Validation
 
 To compare the performance of the models (logistic regression, Random Forests, and sinusoidal extensions), we will use cross-validation. Model evaluation metrics, such as accuracy, precision, recall, and F1-score, will guide the selection of the best-performing model.
-
-```{r, echo=FALSE}
-# Cross-validation setup
-# train_control <- trainControl(method = "cv", number = 5)
-# rf_cv <- train(Outcome ~ ., data = model_data, method = "rf", trControl = train_control)
-```
 
 ## Section Conclusion
 
