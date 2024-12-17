@@ -24,9 +24,11 @@ model_data <- data.frame(
 if (REPRODUCE) {
   # Fit multinomial logistic regression
   logistic_model <- multinom(Outcome ~ ., data = model_data)
-  saveRDS(logistic_model, "sims/log_model.RDS")
+  if (SAVE) {
+    saveRDS(logistic_model, "../sims/log_model.RDS")
+  }
 } else {
-  logistic_model <- readRDS("sims/log_model.RDS")
+  logistic_model <- readRDS("../sims/log_model.RDS")
 }
 
 if (REPRODUCE) {
@@ -79,8 +81,10 @@ if (REPRODUCE) {
         axis.text.y = element_text(size = 10)
       ))
   
-  ggsave("sims/multinom_model_coeffs_heatmap.png", 
-         plot = p, width = 8, height = 6, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/multinom_model_coeffs_heatmap.png", 
+           plot = p, width = 8, height = 6, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/multinom_model_coeffs_heatmap.png")
+  knitr::include_graphics("../sims/multinom_model_coeffs_heatmap.png")
 }

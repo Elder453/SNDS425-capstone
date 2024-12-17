@@ -26,14 +26,15 @@ if (REPRODUCE) {
       scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
             legend.position = "none"))
-  
-  ggsave("sims/landcover_distribution.png",
-         plot = p,
-         width = 8,
-         height = 4,
-         dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/landcover_distribution.png",
+           plot = p,
+           width = 8,
+           height = 4,
+           dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/landcover_distribution.png")
+  knitr::include_graphics("../sims/landcover_distribution.png")
 }
 
 # ---- NDVI Analysis ----
@@ -47,10 +48,12 @@ if (REPRODUCE) {
           x = "Land Cover Class", y = "NDVI") +
      theme(axis.text.x = element_text(size = 8)))
   
-  ggsave("sims/ndvi_boxplot.png",
-         plot = p, width = 8, height = 4, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/ndvi_boxplot.png",
+           plot = p, width = 8, height = 4, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/ndvi_boxplot.png")
+  knitr::include_graphics("../sims/ndvi_boxplot.png")
 }
 
 # ---- Spectral Bands Exploration ----
@@ -71,10 +74,12 @@ if (REPRODUCE) {
       facet_wrap(~spectral_band, scales = "free_y") +
       theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)))
   
-  ggsave("sims/spectral_bands_boxplot.png",
-         plot = p, width = 8, height = 6, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/spectral_bands_boxplot.png",
+           plot = p, width = 8, height = 6, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/spectral_bands_boxplot.png")
+  knitr::include_graphics("../sims/spectral_bands_boxplot.png")
 }
 
 # ---- Temporal Features Exploration: NDVI ----
@@ -90,8 +95,10 @@ if (REPRODUCE) {
      labs(title = "Monthly Trends in NDVI",
           x = "Month", y = "Mean NDVI"))
   
-  ggsave("sims/ndvi_monthly.png",
-         plot = p, width = 8, height = 3.5, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/ndvi_monthly.png",
+           plot = p, width = 8, height = 3.5, dpi = 300)
+  }
   
   (p <- ggplot(monthly_clean, 
                aes(x = season, 
@@ -104,11 +111,13 @@ if (REPRODUCE) {
       labs(title = "Seasonal Trends in NDVI",
            x = "Season", y = "Mean NDVI"))
   
-  ggsave("sims/ndvi_seasonal.png",
-         plot = p, width = 8, height = 3.5, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/ndvi_seasonal.png",
+           plot = p, width = 8, height = 3.5, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/ndvi_monthly.png")
-  knitr::include_graphics("sims/ndvi_seasonal.png")
+  knitr::include_graphics("../sims/ndvi_monthly.png")
+  knitr::include_graphics("../sims/ndvi_seasonal.png")
 }
 
 if (REPRODUCE) {
@@ -124,10 +133,12 @@ if (REPRODUCE) {
          x = "Year", y = "Mean NDVI") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)))
   
-  ggsave("sims/ndvi_yearly.png",
-         plot = p, width = 8, height = 4, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/ndvi_yearly.png",
+           plot = p, width = 8, height = 4, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/ndvi_yearly.png")
+  knitr::include_graphics("../sims/ndvi_yearly.png")
 }
 
 # ---- Temporal Features Exploration: Spectral Bands ----
@@ -149,10 +160,13 @@ if (REPRODUCE) {
     ) +
     # reduce y-axis ticks
     scale_y_continuous(breaks = scales::pretty_breaks(n = 3)))
-  ggsave("sims/spectral_bands_seasonal.png",
-         plot = p, width = 8, height = 5, dpi = 300)
+  
+  if (SAVE) {
+    ggsave("../sims/spectral_bands_seasonal.png",
+           plot = p, width = 8, height = 5, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/spectral_bands_seasonal.png")
+  knitr::include_graphics("../sims/spectral_bands_seasonal.png")
 }
 
 if (REPRODUCE) {
@@ -173,10 +187,12 @@ if (REPRODUCE) {
     ) +
     scale_y_continuous(breaks = scales::pretty_breaks(n = 3)))
   
-  ggsave("sims/spectral_bands_yearly.png",
-         plot = p, width = 8, height = 5, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/spectral_bands_yearly.png",
+           plot = p, width = 8, height = 5, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/spectral_bands_yearly.png")
+  knitr::include_graphics("../sims/spectral_bands_yearly.png")
 }
 
 # ---- Spatial Distribution of NDVI ----
@@ -190,10 +206,12 @@ if (REPRODUCE) {
          x = "Longitude", y = "Latitude", color = "NDVI") +
     theme(legend.position = "none"))
   
-  ggsave("sims/ndvi_spatial.png",
-         plot = p, width = 8, height = 3.75, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/ndvi_spatial.png",
+           plot = p, width = 8, height = 3.75, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/ndvi_spatial.png")
+  knitr::include_graphics("../sims/ndvi_spatial.png")
 }
 
 # ---- Spatial Distribution of Spectral Bands ----
@@ -215,10 +233,12 @@ if (REPRODUCE) {
       legend.position = "none")
   )
   
-  ggsave("sims/spectral_bands_spatial.png",
-         plot = p, width = 8, height = 4.5, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/spectral_bands_spatial.png",
+           plot = p, width = 8, height = 4.5, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/spectral_bands_spatial.png")
+  knitr::include_graphics("../sims/spectral_bands_spatial.png")
 }
 
 # ---- Correlation Matrix ----
@@ -255,10 +275,12 @@ if (REPRODUCE) {
         axis.title.y=element_blank()
       ))
   
-  ggsave("sims/correlation_matrix.png", 
-         plot = p, width = 8, height = 6, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/correlation_matrix.png", 
+           plot = p, width = 8, height = 6, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/correlation_matrix.png")
+  knitr::include_graphics("../sims/correlation_matrix.png")
 }
 
 # ---- Elevation Distribution Across Land Cover Classes ----

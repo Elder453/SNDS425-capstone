@@ -30,7 +30,9 @@ if (REPRODUCE) {
     # Store the OOB error
     results$OOB_error[i] <- rf_tuned$prediction.error
   }
-  saveRDS(results, "sims/rf_results.RDS")
+  if (SAVE) {
+    saveRDS(results, "../sims/rf_results.RDS")
+  }
   
   set.seed(425)
   best_params <- results[which.min(results$OOB_error), ]
@@ -40,10 +42,12 @@ if (REPRODUCE) {
                      importance = "impurity", 
                      mtry = best_params$mtry,
                      max.depth = best_params$max_depth)
-  saveRDS(rf_model, "sims/rf_model.RDS")
+  if (SAVE) {
+    saveRDS(rf_model, "../sims/rf_model.RDS")
+  }
 } else {
-  results <- readRDS("sims/rf_results.RDS")
-  rf_model <- readRDS("sims/rf_model.RDS")
+  results <- readRDS("../sims/rf_results.RDS")
+  rf_model <- readRDS("../sims/rf_model.RDS")
 }
 
 if (REPRODUCE) {

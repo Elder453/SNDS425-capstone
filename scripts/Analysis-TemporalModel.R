@@ -68,9 +68,12 @@ model_data_tmprl <- data.frame(
 if (REPRODUCE) {
   # Fit multinomial logistic regression
   logistic_model <- multinom(Outcome ~ ., data = model_data_tmprl)
-  saveRDS(logistic_model, "sims/log_model_tmprl_month.RDS")
+  
+  if (SAVE) {
+    saveRDS(logistic_model, "../sims/log_model_tmprl_month.RDS")
+  }
 } else {
-  logistic_model <- readRDS("sims/log_model_tmprl_month.RDS")
+  logistic_model <- readRDS("../sims/log_model_tmprl_month.RDS")
 }
 
 if (REPRODUCE) {
@@ -123,8 +126,10 @@ if (REPRODUCE) {
         axis.text.y = element_text(size = 10)
       ))
   
-  ggsave("sims/tmprl_multinom_model_coeffs_heatmap.png", 
-         plot = p, width = 8, height = 6, dpi = 300)
+  if (SAVE) {
+    ggsave("../sims/tmprl_multinom_model_coeffs_heatmap.png", 
+           plot = p, width = 8, height = 6, dpi = 300)
+  }
 } else {
-  knitr::include_graphics("sims/tmprl_multinom_model_coeffs_heatmap.png")
+  knitr::include_graphics("../sims/tmprl_multinom_model_coeffs_heatmap.png")
 }

@@ -3,7 +3,6 @@
 # Purpose: Perform PCA on spectral bands and generate a Scree Plot.
 # ===========================
 
-# ---- PCA & Scree Plot ----
 # Feature selection: Use PCA to reduce multicollinearity
 pca_bands <- prcomp(
   monthly_clean[, c("sr_b1", "sr_b2", "sr_b3", "sr_b4", "sr_b5", "sr_b7")],

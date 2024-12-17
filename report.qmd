@@ -59,9 +59,9 @@ Understanding and predicting changes in land cover and land use over time is cri
 
 The motivation for this project arises from the need to integrate spatial and temporal dimensions into land cover modeling. While static models offer a snapshot of land cover at a *single* point in time, they fail to capture seasonal oscillations, inter-annual variability, and spatial dependencies inherent in natural systems. For example, vegetation exhibits predictable seasonal cycles that can be modeled using sinusoidal functions, revealing patterns in NDVI amplitude and frequency that correspond to land cover types. Additionally, nearby pixels often share similar characteristics due to ecological and geographic continuity, underscoring the importance of spatial relationships in classification models. These dynamics are not only scientifically interesting but also essential for improving the accuracy and interpretability of predictive models.
 
-The data used in this study includes satellite-derived spectral bands (e.g., from the Landsat collection) and associated geospatial features, such as NDVI, land cover labels, and pixel locations. Temporal attributes such as month and year provide the foundation for modeling seasonal and long-term trends, while spatial attributes enable the incorporation of neighborhood-level statistics. Together, these features provide excellent data for exploring spatial-temporal patterns and improving land cover classification.
+The data used in this study includes satellite-derived spectral bands (e.g., from the [Landsat collection](https://www.usgs.gov/special-topics/lcmap)) and associated geospatial features, such as NDVI, land cover labels, and pixel locations. Temporal attributes such as month and year provide the foundation for modeling seasonal and long-term trends, while spatial attributes enable the incorporation of neighborhood-level statistics. Together, these features provide excellent data for exploring spatial-temporal patterns and improving land cover classification.
 
-This paper is organized as follows: [Section 2](#data-exploration-and-visualization) provides an overview of the data, including exploratory analysis and visualizations that highlight key relationships and patterns. [Section 3](#modelinganalysis) describes the modeling approaches, including both regression and classification methods, with a focus on integrating temporal and spatial features into the predictive framework. [Section 4](#viz-results) discusses the visualization and interpretation of the results, comparing model performance and interpretability across approaches. Finally, [Section 5](#conclusions-recs) presents conclusions, recommendations, and ideas for future research directions, emphasizing the potential of spatial-temporal models for advancing land cover studies. By systematically exploring these dimensions, this project aims to contribute to a deeper understanding of land cover dynamics and their applications in environmental monitoring and management.
+This paper is organized as follows: [Section 2](#data-exploration-and-visualization) provides an overview of the data, including exploratory analysis and visualizations that highlight key relationships and patterns. [Section 3](#modelinganalysis) describes the modeling approaches, including both regression and classification methods, with a focus on integrating temporal features into the predictive framework. It then discusses the visualization and interpretation of the results, comparing model performance and interpretability across approaches. Finally, [Section 4](#conclusions-recs) presents conclusions, recommendations, and ideas for future research directions, emphasizing the potential of random forest models for advancing land cover studies. By systematically exploring these dimensions, this project aims to contribute to a deeper understanding of land cover dynamics and their applications in environmental monitoring and management.
 
 # Data Exploration and Visualization {#data-exploration-and-visualization}
 
@@ -124,13 +124,13 @@ The distribution of land cover classes reveals substantial class imbalances, whi
 
 In contrast, other land cover classes are significantly underrepresented. For instance, “Water” and “Shrubs” account for 9.09% and 8.24% of observations, respectively, while “Barren” and “Impervious” cover only 4.27% and 1.18%. The “Snow/Ice” class constitutes a mere 0.01% of observations, reflecting minimal spatial extent. This extreme imbalance suggests challenges for classification models, as underrepresented classes may be overshadowed during training, leading to biased predictions.
 
-From a modeling perspective, class imbalance necessitates careful consideration of strategies to mitigate its effects. Techniques such as class weighting, oversampling of minority classes, or undersampling of dominant classes could be employed to ensure balanced representation during training. Furthermore, performance metrics beyond overall accuracy, such as the F1-score, precision-recall curves, or area under the ROC curve (AUC), will be considered to evaluate model performance more effectively across all classes.
+From a modeling perspective, class imbalance necessitates careful consideration of strategies to mitigate its effects. Techniques such as class weighting, oversampling of minority classes, or undersampling of dominant classes could be employed to ensure balanced representation during training. Furthermore, performance metrics beyond overall accuracy, such as the F1-score, precision-recall curves, and macro-averaged scores, will be considered to evaluate model performance more effectively across all classes.
 
 ## Exploration of Predictors
 
 ### Spectral Bands and NDVI:
 
-Visualizing the spectral band values across different land cover types reveals a potential relationship between the outcome and predictor. Below, a boxplot of NDVI across land cover classes illustrates this relationship:
+Visualizing the spectral band and NDVI values across different land cover types reveals a potential relationship between the outcome and predictor. Below, a boxplot of NDVI across land cover classes illustrates this relationship:
 
 ```{r, echo=FALSE, fig.width=8, fig.height=4, out.width="100%", fig.align="center"}
 if (REPRODUCE) {
@@ -369,7 +369,7 @@ In contrast, areas with low NDVI values are predominantly located in the arid we
 
 Furthermore, the spatial clustering observed in the map suggests the importance of incorporating spatial relationships into the modeling framework. By considering the influence of nearby pixels, the model may better capture the continuity and heterogeneity inherent in natural landscapes. For instance, spatial smoothing or feature engineering techniques that aggregate NDVI values across a local neighborhood can provide additional context for distinguishing between land cover types with similar spectral signatures.
 
-This analysis supports the hypothesis that spatial dependencies play a critical role in determining NDVI variability and, by extension, land cover classification. Incorporating spatial features may not only enhance model performance but also align with the underlying ecological processes that govern land cover patterns. We will leverage these spatial relationships by integrating *neighborhood-level* statistics.
+This supports the hypothesis that spatial dependencies play a critical role in determining NDVI variability and, by extension, land cover classification.
 
 ## Preliminary Correlation Analysis
 
@@ -425,7 +425,6 @@ Beyond the visible spectrum, the infrared bands `SR_B4`, `SR_B5`, and `SR_B7` sh
 
 The observed correlations provide critical guidance for feature engineering and model selection. The weak correlations between NDVI and individual spectral bands further reinforce the need to explore non-linear models, such as Random Forests, that can capture complex interactions. At the same time, the high collinearity among certain bands necessitates dimensionality reduction to mitigate redundancy and improve computational efficiency. Incorporating indices such as NDVI or enhanced vegetation indices may allow for a more nuanced representation of vegetation health, leveraging the interplay of spectral bands more effectively. While spatial and elevation variables appear weakly correlated with NDVI, they may still play an important role in explaining regional variations when combined with other predictors.
 
-
 ## Section Conclusion
 
 This exploratory analysis establishes the relationships between predictors and the outcome variable, supports the inclusion of temporal and spatial features, and provides insight into approaches for model selection. The next section will focus on modeling approaches, detailing the assumptions, methodology, and evaluation metrics used to predict land cover classes.
@@ -440,7 +439,7 @@ The task involves predicting the dominant land cover class (`dominant_landcover`
 
 -   Observation ($X$): Each row corresponds to a unique satellite-derived observation at a specific time (`year`, `month`) and geographic location (`lat`, `lon`).
 
--   Predictors (columns of $X$): Continuous predictors include spectral bands (`SR_B1`, `SR_B2`, … `SR_B7`), `NDVI`, elevation (`elevation_meters`), and spatial-temporal variables like `month`, `year`, and `season`. Derived spatial aggregates and sinusoidal features (e.g., sine/cosine terms) will also be introduced during feature engineering.
+-   Predictors (columns of $X$): Continuous predictors include spectral bands (`SR_B1`, `SR_B2`, … `SR_B7`), `NDVI`, elevation (`elevation_meters`), and spatial-temporal variables like `month`, `year`, and `season`. Derived sinusoidal features (e.g., sine/cosine terms) will also be introduced during feature engineering.
 
 -   Outcome ($y$): The target variable is `dominant_landcover`, representing land cover classes such as “Trees,” “Water,” “Snow/Ice,” etc.
 
@@ -464,7 +463,7 @@ The model estimates $\beta$ using maximum likelihood estimation to minimize the 
 
 ### Implementation:
 
-The predictors used in the model include spectral bands (`SR_B1` to `SR_B7`), `NDVI`, temporal features (`season`), elevation bins, vegetation indicators, and spatial features (`EastWest` and `NorthSouth`). However, due to the strong collinearity observed among the spectral bands (e.g., `SR_B1`, `SR_B2`, and `SR_B3`), dimensionality reduction is applied using Principal Component Analysis (PCA). PCA transforms the original spectral band features into orthogonal components, retaining the majority of the variance in the data while reducing redundancy and computational complexity.
+The predictors used in the model include spectral bands (`SR_B1` to `SR_B7`), `NDVI`, temporal features (`season`), elevation, vegetation indicators, and spatial features (`EastWest` and `NorthSouth`). However, due to the strong collinearity observed among the spectral bands (e.g., `SR_B1`, `SR_B2`, and `SR_B3`), dimensionality reduction is applied using PCA. PCA transforms the original spectral band features into orthogonal components, retaining the majority of the variance in the data while reducing redundancy and computational complexity.
 
 #### Principal Component Analysis (PCA)
 
@@ -502,7 +501,7 @@ The scree plot of explained variance demonstrates that the first principal compo
 
 Given this pattern, we retain only PC1 and PC2 for downstream modeling, as they account for the vast majority of the variance in the spectral bands while significantly reducing dimensionality. Selecting only PC1 and PC2 simplifies the model and improves computational efficiency while maintaining the interpretability of the dominant trends in the spectral bands.
 
-We proceed to fit the multinomial logistic regression model using PC1, PC2, `NDVI`, `season`, `elevation_meters`, `veg`, `east_west`, and `north_south` as predictors. We standardize the continuous predictors to have mean 0, standard deviation 1 to ensure that coefficients are on the same scale and interpretability is consistent across features.
+We proceed to fit the multinomial logistic regression model using `PC1`, `PC2`, `NDVI`, `season`, `elevation_meters`, `veg`, `east_west`, and `north_south` as predictors. We standardize the continuous predictors to have mean 0, standard deviation 1 to ensure that coefficients are on the same scale and interpretability is consistent across features.
 
 ```{r, echo=FALSE}
 # Standardize continuous predictors
@@ -625,13 +624,13 @@ The intercept terms, particularly for “Grass/Forb/Herb” and “Trees,” are
 
 The spatial predictors, `EastWest` and `NorthSouth`, reveal distinct trends. `EastWest:West` shows the largest negative coefficients for “Water” and “Trees”, indicating a reduced likelihood of these classes occurring in the western regions. Conversely, “Grass/Forb/Herb” and “Shrubs” display smaller negative coefficients, suggesting a more balanced east-west distribution for these classes. This trend aligns with geographic observations, where dense vegetation (trees) and water bodies are more prominent in the eastern United States. `NorthSouth:South`, on the other hand, exhibits negligible coefficients across most classes, with a modest negative value for “Snow/Ice”. This pattern is consistent with the climatological expectation that snow and ice are less likely to appear in southern regions closer to the equator, where temperatures are higher.
 
-The `NDVI` coefficients highlight its varying relevance across land cover types. `NDVI` is slightly positive for “Impervious” surfaces, likely reflecting bare soil or sparse vegetation associated with impervious areas. In contrast, `NDVI` is negative (albeit, minimally) for “Water” and “Shrubs”, consistent with their low or intermediate vegetation density, which was observed in the `NDVI` boxplots during data exploration. The negative relationship for “Water” reflects its distinct spectral signature, as water absorbs near-infrared light, resulting in consistently low NDVI values.
+The `NDVI` coefficients highlight varying relevance across land cover types. `NDVI` is slightly positive for “Impervious” surfaces, likely reflecting bare soil or sparse vegetation associated with impervious areas. In contrast, `NDVI` is negative (albeit, minimally) for “Water” and “Shrubs”, consistent with their low or intermediate vegetation density, which was observed in the `NDVI` boxplots during data exploration. The negative relationship for “Water” reflects its distinct spectral signature, as water absorbs near-infrared light, resulting in consistently low NDVI values.
 
-The principal components (`PC1` and `PC2`) derived from spectral bands demonstrate subtle yet interpretable patterns. PC1 exhibits negligible coefficients across most classes, except for small negative values for “Shrubs” and “Water”. This result suggests that PC1 primarily captures spectral variations that do not contribute meaningfully to class separability. In contrast, PC2 displays small but positive coefficients across multiple classes, most prominently for “Trees” and “Snow/Ice”. This positive relationship may reflect spectral nuances captured in PC2 that are more aligned with vegetated and cryospheric surfaces. Notably, “Impervious” surfaces show near-zero coefficients for PC2, suggesting minimal spectral distinction along this principal component axis.
+The principal components (`PC1` and `PC2`) derived from spectral bands demonstrate subtle yet interpretable patterns. `PC1` exhibits negligible coefficients across most classes, except for small negative values for “Shrubs” and “Water”. This result suggests that `PC1` primarily captures spectral variations that do not contribute meaningfully to class separability. In contrast, PC2 displays small but positive coefficients across multiple classes, most prominently for “Trees” and “Snow/Ice”. This positive relationship may reflect spectral nuances captured in `PC2` that are more aligned with vegetated and cryospheric surfaces. Notably, “Impervious” surfaces show near-zero coefficients for `PC2`, suggesting minimal spectral distinction along this principal component axis.
 
 The seasonal predictors (`Season:C`, `Season:L`, `Season:Q`) exhibit small but meaningful coefficients that align with their polynomial contrasts, given the ordered nature of the seasons. In multinomial regression, ordered factors are modeled using orthogonal polynomials to capture linear, quadratic, and cubic trends. `Season.C` (linear trend) is slightly negative for “Snow/Ice”, reflecting a steady seasonal decline as winter transitions into warmer seasons. `Season.L` (quadratic trend) and `Season.Q` (cubic trend) coefficients are most noticeable and positive for “Snow/Ice”, indicating that the relationship between seasonality and snow cover is non-linear. This aligns with the earlier seasonal NDVI analysis, which revealed pronounced temporal peaks and troughs for “Snow/Ice”. For other classes, the seasonal predictors have minimal influence, reinforcing the earlier observation that the linear separability of temporal trends is limited.
 
-The heatmap confirms and extends findings from the data exploration phase. The spatial predictors align with expected geographic distributions, particularly for “Water,” “Trees,” and “Snow/Ice”. NDVI and principal components reveal varying relevance, with NDVI strongly differentiating “Water” and “Impervious” surfaces, while PC2 captures subtle spectral distinctions for “Trees” and “Snow/Ice”. Seasonal predictors highlight the importance of non-linear trends, particularly for “Snow/Ice”.
+The heatmap confirms and extends findings from the data exploration phase. The spatial predictors align with expected geographic distributions, particularly for “Water,” “Trees,” and “Snow/Ice”. `NDVI` and principal components reveal varying relevance, with `NDVI` strongly differentiating “Water” and “Impervious” surfaces, while `PC2` captures subtle spectral distinctions for “Trees” and “Snow/Ice”. Seasonal predictors highlight the importance of non-linear trends, particularly for “Snow/Ice”.
 
 ### Appropriateness:
 
@@ -639,13 +638,13 @@ The multinomial logistic regression model serves as a simple and interpretable b
 
 Nevertheless, a key strength of the multinomial logistic regression model is its interpretability. Coefficients provide clear insights into predictor effects: positive values increase the log-odds of class membership, while negative values decrease it. For instance, the Vegetation Indicator (`Veg:1`) strongly differentiates vegetated classes (“Trees,” “Grass/Forb/Herb”) from non-vegetated ones, aligning with NDVI trends observed during data exploration. Spatial predictors (`EastWest` and `NorthSouth`) capture meaningful geographic patterns, such as the higher prevalence of “Water” and “Trees” in eastern regions.
 
-NDVI coefficients confirm its ecological relevance, with negative values for “Water” and slight positives for “Impervious,” consistent with their spectral signatures. Principal components (PC1, PC2) show subtle yet interpretable contributions, with PC2 capturing spectral variations for “Trees” and “Snow/Ice.” Seasonal predictors, modeled through polynomial contrasts, reveal non-linear temporal patterns, notably for “Snow/Ice,” which peaks in winter and declines thereafter.
+NDVI coefficients confirm its ecological relevance, with negative values for “Water” and slight positives for “Impervious,” consistent with their spectral signatures. Principal components (`PC1`, `PC2`) show subtle yet interpretable contributions, with `PC2` capturing spectral variations for “Trees” and “Snow/Ice.” Seasonal predictors, modeled through polynomial contrasts, reveal non-linear temporal patterns, notably for “Snow/Ice,” which peaks in winter and declines thereafter.
 
-While the results are interpretable and align with prior observations, the model’s linear constraints and limited handling of class imbalance reduce its effectiveness for minority and complex classes. A more flexible, non-linear approach would better capture the data’s intricacies while maintaining clarity of interpretation.
+While the results are interpretable and align with prior observations, the model’s linear constraints and limited handling of class imbalance reduce its effectiveness for minority and complex classes.
 
 ## Temporal Model: Sinusoidal Multinomial Logistic Regression
 
-Seasonal periodicity observed in NDVI and spectral bands indicates that temporal dynamics are not adequately captured by standard linear models. To address this, sinusoidal regression introduces sine and cosine components to model periodic oscillations, which align with seasonal trends and provide a continuous representation of time-varying effects.
+Periodicity observed in `NDVI` and spectral bands indicates that temporal dynamics are not adequately captured by standard linear models. To address this, sinusoidal regression introduces sine and cosine components to model periodic oscillations, which align with seasonal trends and provide a continuous representation of time-varying effects.
 
 ### Model Specification:
 
@@ -657,7 +656,7 @@ $$
 
 Here:
 
--   $t$ represents the temporal variable (e.g., the numeric representation of `season`)
+-   $t$ represents the temporal variable (e.g., the numeric representation of `season` or `month`)
 -   $A$ and $B$ are the amplitude coefficients, which are estimated during model training. These coefficients determine the magnitude of the oscillation and capture the contribution of the sine and cosine terms to the overall periodic pattern.
 -   $f$ denotes the frequency of the oscillation, which corresponds to the natural periodicity of the phenomenon under study. For seasonal data divided into four quarters (Winter, Spring, Summer, Fall), $f = \frac{1}{4}$, indicating one full cycle per year.
 -   $\phi$ represents the phase shift, accounting for the starting point of the oscillation. Since the data aligns naturally with the seasons (e.g., starts in the Winter), we assume $\phi$ to be 0 to simplify the model.
@@ -729,11 +728,11 @@ monthly_clean$sin_month <- sin(2 * pi * freq_month * month_numeric)
 monthly_clean$cos_month <- cos(2 * pi * freq_month * month_numeric)
 ```
 
-To account for the clear seasonal periodicity observed in `NDVI`, we performed a Fourier Transformation to identify the dominant frequency driving temporal oscillations. This step was motivated by the strong seasonal trends observed in the data, where `NDVI` peaks during the summer months and declines in winter, reflecting vegetation growth cycles. The Fourier Transformation decomposes the `NDVI` time series into its constituent frequencies, allowing us to quantify periodic patterns and determine the most significant frequency contributing to the observed variations.
+To account for this clear periodicity in `NDVI`, we performed a Fourier Transformation to identify the dominant frequency driving temporal oscillations. This step was motivated by the strong seasonal trends observed in the data, where `NDVI` peaks during the summer months and declines in winter, reflecting vegetation growth cycles. The Fourier Transformation decomposes the `NDVI` time series into its constituent frequencies, allowing us to quantify periodic patterns and determine the most significant frequency contributing to the observed variations.
 
-The results of the Fourier Transformation indicate that the dominant frequency corresponds to $f=\frac{1}{12}$, representing a single annual cycle. This frequency accounts for the majority of the variance in `NDVI`, while higher-order frequencies have negligible contributions. This finding confirms that `NDVI` follows a regular, annual oscillatory pattern, which aligns with ecological expectations of seasonal vegetation changes.
+The results of the Fourier Transformation analysis indicate that the dominant frequency corresponds to $f=\frac{1}{12}$, representing a single annual cycle among the `month` predictor. This frequency accounts for the majority of the variance in `NDVI`, while higher-order frequencies have negligible contributions. This finding confirms that `NDVI` follows a regular, annual oscillatory pattern, which aligns with ecological expectations of seasonal vegetation changes.
 
-To incorporate this seasonality into the multinomial regression model, we transformed the `month` variable into two sinusoidal features: $\sin(2\pi \cdot f \cdot \text{month})$ and $\cos(2\pi \cdot f \cdot \text{month})$. These sine and cosine terms capture the periodic nature of `NDVI` across months, providing a smooth representation of temporal trends. By including these derived features as predictors, the model gains the ability to account for seasonal variations in a flexible yet interpretable manner, enhancing its capacity to distinguish between land cover classes with strong temporal signals, such as “Grass/Forb/Herb” and “Snow/Ice.”
+To incorporate this seasonality into the multinomial regression model, we transformed the `month` variable (which is much more granular than `season`) into two sinusoidal features: $\sin(2\pi \cdot f \cdot \text{month})$ and $\cos(2\pi \cdot f \cdot \text{month})$. These sine and cosine terms capture the periodic nature of `NDVI` across months, providing a smooth representation of temporal trends. By including these derived features as predictors, the model may gain the ability to account for seasonal variations in a flexible yet interpretable manner, enhancing its capacity to distinguish between land cover classes with strong temporal signals, such as “Grass/Forb/Herb” and “Snow/Ice.”
 
 ```{r, echo=FALSE}
 # Standardize continuous predictors
@@ -838,68 +837,92 @@ $$
 \end{array}
 $$
 
-Incorporating sinusoidal transformations of the month variable, represented as sine and cosine terms, aimed to address the observed periodicity in the temporal predictors, particularly the cyclical pattern of NDVI over the calendar year. These periodic components, theoretically, enable the model to account for annual and seasonal temporal cycles, such as vegetation growth peaking during summer and snow cover during winter. Mathematically, the sine and cosine features capture temporal effects in a continuous manner *without* relying on categorical representations, thus aligning more closely with periodic phenomena in the data.
+Incorporating sinusoidal transformations of the month variable, represented as sine and cosine terms, aimed to address the observed periodicity in the temporal predictors, particularly the cyclical pattern of NDVI over the calendar year. These periodic components, theoretically, enable the model to account for annual and seasonal temporal cycles, e.g., vegetation growth peaking during summer and snow cover during winter. Mathematically, the sine and cosine features capture temporal effects in a continuous manner *without* relying on categorical representations, thus aligning more closely with periodic phenomena in the data.
 
-Performance evaluation of the sinusoidal multinomial regression model, however, reveals negligible improvements over the baseline multinomial logistic regression. Class-specific metrics such as precision, recall, and F1-score exhibit minimal or no meaningful gains, as demonstrated by the macro-averaged F1-score (0.5012) and balanced accuracy (0.7112), which remain nearly identical to the baseline results (0.5002 & 0.7109, respectively). Classes such as “Snow/Ice,” where stronger temporal signals were anticipated, show only marginal changes in predictive accuracy. While the sine term exhibits a weak negative coefficient for “Snow/Ice,” the cosine term remains near zero across all classes, indicating that these temporal features contribute minimally to class separation. This suggests that the seasonal patterns captured by the sinusoidal terms are insufficient to meaningfully enhance this model’s discriminatory power.
+Performance evaluation of the sinusoidal multinomial regression model, however, reveals negligible improvements over the baseline multinomial logistic regression. Class-specific metrics such as precision, recall, and F1-score exhibit minimal or no meaningful gains, as demonstrated by the macro-averaged F1-score (0.5012) and balanced accuracy (0.7112), which remain nearly identical to the baseline results (0.5002 and 0.7109, respectively). Classes such as “Snow/Ice,” where stronger temporal signals were anticipated, show only marginal changes in predictive accuracy. While the sine term exhibits a weak negative coefficient for “Snow/Ice,” the cosine term remains near zero across all classes, indicating that these temporal features contribute minimally to class separation. This suggests that the seasonal patterns captured by the sinusoidal terms are insufficient to meaningfully enhance this model’s discriminatory power.
 
 From an interpretability standpoint, the inclusion of sinusoidal features complicates the model without adding substantial value. While the baseline model relied on simpler, more interpretable predictors, the sinusoidal terms introduce an additional layer of complexity. The resulting coefficients for `sin_month` and `cos_month` are not intuitive to interpret, especially for non-technical stakeholders. Moreover, the near-zero influence of these coefficients further diminishes their utility, as they fail to capture meaningful temporal variability beyond what was already modeled by existing predictors like `NDVI` and `season`.
 
-Thus, while the sinusoidal regression approach is—*theoretically*—well-suited for periodic data, its empirical performance in this case does not justify the added complexity. The marginal improvements in predictive metrics, coupled with reduced interpretability, suggest that simpler temporal representations such as categorical season remain sufficient for this dataset.
+Thus, while the sinusoidal regression approach is—*theoretically*—well-suited for periodic data, its empirical performance in this case does not justify the added complexity. The marginal improvements in predictive metrics, coupled with reduced interpretability, suggest that simpler temporal representations such as categorical `season` remain sufficient for this dataset.
 
 ## Non-Linear Models
 
 While multinomial logistic regression serves as a baseline model for land cover classification, its performance is limited by the linearity assumption and its inability to model complex feature interactions. Given the inherently non-linear relationships present in remote sensing data, such as interactions between spectral bands, elevation, and seasonal patterns, a more flexible modeling approach is required.
 
 ## CART (Classification and Regression Trees) Algorithm
-CART algorithms excel at modeling non-linear and complex interactions between both continuous and categorical variables, which are common in environmental datasets. CART algorithms work well with raw data and require minimal preprocessing, such as scaling or normalization. CART can handle noisy and missing data effectively, making it a reliable choice for datasets with gaps or inconsistencies, which are often seen in environmental monitoring systems. 
-CART forms the foundation of more advanced algorithms like Random Forest and Gradient Boosting, which are often recommended when higher accuracy is needed for predictive modeling. The CART algorithm builds a  single decision tree by recursively splitting the data based on a chosen criterion (e.g., Entropy). Then, it directly assigns a class label to the leaf nodes based on the majority vote in those nodes.
-CART's use of a single decision tree can lead to overfitting, especially when the tree grows deep and captures noise in the training data. To counter this, CART can at times require pruning techniques, which can lead to a tradeoff between bias and variance. However, the interpretability and computational efficiency of CART models are significant advantages, as the decision rules are easy to understand and communicate to stakeholders.
+
+CART algorithms excel at modeling non-linear and complex interactions between both continuous and categorical variables, which are common in environmental datasets. CART algorithms work well with raw data and require minimal preprocessing, such as scaling or normalization. CART can handle noisy and missing data effectively, making it a reliable choice for datasets with gaps or inconsistencies, which are often seen in environmental monitoring systems.
 
 ### Assumptions:
 
 CART models make no assumptions about the functional form of the predictors and outcomes, making them highly flexible for complex datasets. They can handle multicollinearity, non-linear relationships, and high-dimensional predictors effectively.
 
+### Model Specification:
+
+CART forms the foundation of more advanced algorithms like Random Forest. The CART algorithm builds a *single* decision tree by recursively partitioning the feature space to predict the class of the target variable. At each split, the algorithm selects the optimal feature and threshold by minimizing an impurity criterion (e.g., Entropy measuring the uncertainty of a node or Gini Index measuring the probability of misclassification). It stops when a pre-defined criterion is met (e.g. minimum number of samples in a node, maximum tree depth, or impurity improvement below a threshold). Lastly, it directly assigns a class label to the leaf nodes based on the majority vote in those nodes (for classification).
+
+CART's use of a single decision tree can lead to overfitting, especially when the tree grows deep and captures noise in the training data. To counter this, CART can at times require pruning techniques, which can lead to a tradeoff between bias and variance. However, the interpretability and computational efficiency of CART models are significant advantages, as the decision rules are easy to understand and communicate to stakeholders.
+
 ### Implementation:
-The monthly averages dataset was filtered to points within U.S. borders and assessed in year-wise batches, with unique entries defined by plotid. Landcover classes were dynamically encoded, and visualized on the GEE interface:
+
+The dataset was filtered to points within U.S. borders and assessed in year-wise batches, with unique entries defined by plotid. Landcover classes were dynamically encoded, and visualized on the [Google Earth Engine](https://earthengine.google.com) interface:
 
 ![Map of Visualized Data](sims/actual_map.png)
 
-The CART model was trained on 70% of the dataset and tested on 30% of the dataset, using predictors: NDVI, SR_B1, SR_B2, SR_B3, SR_B4, SR_B5, SR_B7, elevation_meters (See full code [here](https://code.earthengine.google.com/27be438d2822e76c39af6aece7d61aad)).
-For instance, for 2018, the data sizes were as follows;
-* Total Observations: 24,411
-* Training Set: 16,942 observations
-* Testing Set: 7,469 observations
+The dataset was divided using a 70%-30% training-testing split. Thus, the CART model was trained on 70% of the dataset and tested on 30% of the dataset, using predictors: `NDVI`, `SR_B1`, `SR_B2`, `SR_B3`, `SR_B4`, `SR_B5`, `SR_B7`, `elevation_meters` (See full code [here](https://code.earthengine.google.com/27be438d2822e76c39af6aece7d61aad)).
+
+For instance, for 2018, the data sizes were as follows:
+
+-   Total Observations: 24,411
+
+    -   Training Set: 16,942 observations
+
+    -   Testing Set: 7,469 observations
 
 ### Performance Evaluation
 
-The CART model was evaluated using accuracy, precision, recall, and the kappa coefficient. It earned:
-* An accuracy of 0.553, or 55.3%
-* A kappa coefficient of 0.304
-The classifier incorrectly classified 3339 observations, representing 44.7% of the testing set. There were 30 unique misclassification types, and we observed those 6 with the highest misclassification frequency:
-1. Trees classified as Grass/Forb/Herb (805)
-2. Grass/Forb/Herb classified as Trees (745)
-3. Trees classified as Shrubs (382)
-4. Shrubs classified as Trees (322)
-5. Trees classified as Barren (192)
-6. Barren classified as Trees (153)
-These misclassifications were styled dynamically by type and visualized on the map to explore any geospatial groupings. We see that trees and grass are often misclassified as one another along the northeast, but grass is incorrectly classified as trees in the midwest. This shows that the model struggles to distinguish between these two classes in certain regions, but especially where grass is prevalent.
+The CART model was evaluated using accuracy, precision, recall, and the kappa ($\kappa$) coefficient. It yielded an accuracy of 55.3% and a $\kappa$ coefficient of 0.304.
+
+The classifier incorrectly classified 3339 observations (44.7% of the testing set). There were 30 unique misclassification types. The 6 classes with the highest misclassification frequency:
+
+1.  "Trees" classified as "Grass/Forb/Herb" (805)
+
+2.  "Grass/Forb/Herb" classified as "Trees" (745)
+
+3.  "Trees" classified as "Shrubs" (382)
+
+4.  "Shrubs" classified as "Trees" (322)
+
+5.  "Trees" classified as "Barren" (192)
+
+"Barren" classified as "Trees" (153)
+
+These misclassifications were styled dynamically by type and visualized on the map to explore any geospatial groupings. We see that "Trees" and "Grass/Forb/Herb" are often misclassified as one another along the Northeast, but "Grass/Forb/Herb" is incorrectly classified as "Trees" in the Midwest. This shows that the model struggles to distinguish between these two classes in certain regions, but especially where "Grass/Forb/Herb" is prevalent.
 
 ![Map of Top 6 Misclassifications Against Actual Values](sims/layeredmap.png)
 
-Given certain classes appeared to host disproportionate misclassifications (e.g., Trees), we explored misclassification rates, precision, and recall by class, shown in the table. First, misclassification rates were calculated as follows:
+Given certain classes appeared to host disproportionate misclassifications (e.g., "Trees"), we explored misclassification rates, precision, and recall by class, shown in the table. First, misclassification rates were calculated as follows:
+
 $$
-\text{Misclassification Rate} = \frac{\text{Misclassified Points in Class}}{\text{Total Points in Class}}
+\text{Misclassification Rate} = \frac{\text{Misclassified Points in Class}}{\text{Total Points in Class}}.
 $$
 
-While all classes have moderate to high misclassification rates, Snow, Impervious, Shrubs and Barren had significantly larger rates than other classes. The dispersion between rates is likely due to class imbalance in the training data, as certain classes were highly underrepresented relative to others, like Snow/ice (2 occurrences) against Grass/forb/herb (8,825 occurrences). Next, the two errors contributing to misclassification, predicting false positives and false negatives, was observed by calculating precision and recall. Precision by class  measures the proportion of true positive predictions out of all positive predictions made by the model:
+While all classes have moderate to high misclassification rates, "Snow/Ice", "Impervious", "Shrubs," and "Barren" had significantly larger rates than other classes. The dispersion between rates is likely due to class imbalance in the training data, as certain classes were highly underrepresented relative to others, like "Snow/Ice" (2 observations) vs. "Grass/forb/herb" (8,825 observations).
+
+Next, the two errors contributing to misclassification, predicting false positives and false negatives, were observed by calculating precision and recall. Precision by class measures the proportion of true positive predictions out of all positive predictions made by the model:
+
 $$
-\text{Precision} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}
+\text{Precision} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}.
 $$
+
 Recall by class measures the proportion of true positive predictions out of all actual positive instances in the dataset:
+
 $$
-\text{Recall} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}
+\text{Recall} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}.
 $$
-When precision is less than recall for a given class, it suggests the model is overpredicting that class, resulting in many false positives. The table shows that Water, Grass/forb/herb and Barren are often incorrectly predicted for a certain point, which makes sense given their large representation in the training data. Conversely, when recall is less than precision, the model is underpredicting that class, resulting in many false negatives. For example, Trees and Shrubs are often missed by the model. Given these classes are not underrepresented in the training data, the model may be struggling to distinguish between them and other classes due to their similar spectral signatures.
+
+When precision is less than recall for a given class, it suggests the model is *over*predicting that class, resulting in many false positives. The table shows that "Water", "Grass/Forb/Herb" and "Barren" are often incorrectly predicted for a certain point, which makes sense given their large representation in the training data. Conversely, when recall is less than precision, the model is underpredicting that class, resulting in many false negatives. For example, "Trees" and "Shrubs" are often missed by the model. Given these classes are not underrepresented in the training data, the model may be struggling to distinguish between them and other classes due to their similar spectral signatures.
+
 $$
 \begin{array}{|l|c|c|c|c|}
 \hline
@@ -914,15 +937,18 @@ $$
 \end{array}
 $$
 
-The results reveal that the CART model, while providing a simple and interpretable solution, struggles to accurately classify land cover types due to the complexity of the data, and perhaps the lack of abundant labels proportionate to the geographic area covered by the dataset. 
+The results reveal that the CART model, while providing a simple and interpretable solution, struggles to accurately classify land cover types due to the complexity of the data, and perhaps the lack of abundant labels proportionate to the geographic area covered by the dataset.
 
-To further our analysis, we created a second CART algorithm that uses our entire dataset as training in order to classify all pixels in a satellite image, from which the algorithm pulls new band values (see full code [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6)). Given the time and computational power required to analyze such large satellite datasets, we focused on the state of New York for this application of the CART algorithm. A rectangular region is defined around NY and expanded into a 60 km buffer, from which a “doughnut” buffer is created by excluding the original rectangle. Points within the rectangle are used as training data, while points within the doughnut buffer are designated as test data. 
-A Landsat 8 composite image is generated for the region, and predictor bands (B1–B7) are sampled at training points to train a CART classifier. The classifier is then applied to the composite image to produce a classified landcover map. The classification results are validated using test points, and a confusion matrix is computed to evaluate performance, including overall accuracy and the Kappa coefficient. Misclassified points, identified by comparing predicted values (classification) to true values (landcover), are highlighted in red and displayed on the map.
+To further our analysis, we created a *second* CART algorithm that uses our entire dataset as training in order to classify all pixels in a satellite image, from which the algorithm pulls new band values (see full code [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6)). Given the time and computational power required to analyze such large satellite datasets, we focused on the state of New York for this application of the CART algorithm.
+
+A rectangular region is defined around NY and expanded into a 60 kilometer buffer, from which a “doughnut” buffer is created by excluding the original rectangle. Points within the rectangle are used as training data, while points within the doughnut buffer are designated as test data. A Landsat 8 composite image is generated for the region, and predictor bands (B1–B7) are sampled at training points to train a CART classifier. The classifier is then applied to the composite image to produce a classified landcover map. The classification results are validated using test points, and a confusion matrix is computed to evaluate performance, including overall accuracy and the Kappa coefficient. Misclassified points, identified by comparing predicted values (classification) to true values (landcover), are highlighted in red and displayed on the map.
+
 ![Map of Classified Landcover in New York](sims/mapoverlays.png)
 
 ### Performance Evaluation
 
-Using the full dataset for a region of interest (New York), the CART model achieved an overall accuracy of 0.74, or 73.84%, and a kappa coefficient of 0.52. This indicates a significant approvement relative to the previous CART model. The classifier incorrectly classified 72 out of 241 test  observations, corresponding to a 29% misclassification rate. The confusion matrix shows that the model struggles to distinguish between certain classes, such as Trees and Grass/Forb/Herb, which are often misclassified as one another.It should be noted that Snow was not included in the training set because no Snow/ice labels existed in NY.
+Using the full dataset for the region of interest (New York), the CART model achieved an overall accuracy of 73.84%, and a kappa coefficient of 0.52. This indicates a significant improvement relative to the previous CART model. The classifier incorrectly classified 72 out of 241 test observations, corresponding to a 29% misclassification rate. The confusion matrix shows that the model still struggles to distinguish between certain classes, such as "Trees" and "Grass/Forb/Herb", which are often misclassified as one another. It should be noted that "Snow/Ice" was not included in the training set because no "Snow/Ice" labels existed in NY.
+
 $$
 \begin{array}{|l|c|c|c|c|}
 \hline
@@ -936,15 +962,13 @@ $$
 \end{array}
 $$
 
-Water was predicted with high accuracy, with only 2 misclassifications and a low misclassification rate of 0.10. The model achieved both precision and recall of 0.9, showing strong performance in identifying this class. Similarly, Grass/Forb/Herb was predicted reasonably well, with 26 misclassifications and a misclassification rate of 0.18. The precision and recall scores of 0.85 and 0.82, respectively, suggest that while the model effectively predicts this class, occasional misclassifications occur, particularly with the Trees class.
-The Trees class performed notably worse, with 22 misclassifications and a high misclassification rate of 0.43. Precision and recall scores of 0.52 and 0.56 indicate that Trees are often confused with other vegetation types, such as Grass/Forb/Herb. This highlights a key limitation in the model’s ability to distinguish between similar vegetative landcover classes.
+"Water" was predicted with high accuracy, with only 2 misclassifications and a low misclassification rate of 0.10. The model achieved both precision and recall of 0.9, showing strong performance in identifying this class. Similarly, "Grass/Forb/Herb" was predicted reasonably well, with 26 misclassifications and a misclassification rate of 0.18. The precision and recall scores of 0.85 and 0.82, respectively, suggest that while the model effectively predicts this class, occasional misclassifications occur, particularly with the "Trees" class. The "Trees" class performed notably worse, with 22 misclassifications and a high misclassification rate of 0.43. Precision and recall scores of 0.52 and 0.56 indicate that Trees are often confused with other vegetation types, such as "Grass/Forb/Herb". This highlights a key limitation in the model’s ability to distinguish between similar vegetative landcover classes.
 
-Shrubs and Barren classes were severely underrepresented, with both having a misclassification rate of 1.0. Precision and recall for these classes were 0.0, indicating that the model entirely failed to identify these landcover types. The poor performance likely stems from a lack of sufficient training data for these classes, leading the model to misclassify them as other dominant classes.
+"Shrubs" and "Barren" classes were severely underrepresented, with both having a misclassification rate of 1.0. Precision and recall for these classes were 0.0, indicating that the model entirely failed to identify these landcover types. The poor performance likely stems from a lack of sufficient training data for these classes, leading the model to misclassify them as other dominant classes.
 
-In summary, while the CART model using full training data performs well for Water and moderately well for Grass/Forb/Herb, it struggles with Trees, Shrubs, Barren, and Impervious classes. The high misclassification rates for underrepresented classes highlight the need for a more balanced training dataset and additional features to improve class differentiation, particularly among vegetation types.
+In summary, while the CART model using full training data performs well for "Water" and moderately well for "Grass/Forb/Herb", it struggles with "Trees", "Shrubs", "Barren", and "Impervious" classes. The high misclassification rates for underrepresented classes highlight the need for a more balanced training dataset and additional features to improve class differentiation, particularly among vegetation types.
 
-### Conclusion
-Results from both models suggest that CART models may be overfitting to certain spectral signatures or struggling to differentiate between classes with similar spectral characteristics, particularly struggling with the Trees class. This demonstrates the limitations of CART's use of a single decision tree and its sensitivity to noise. To improve classification accuracy and address these challenges, we will explore ensemble methods like Random Forests, which can capture non-linear relationships and interactions more effectively by using multiple decision trees.
+Ultimately, results from both models suggest that CART models may be overfitting to certain spectral signatures or struggling to differentiate between classes with similar spectral characteristics, particularly struggling with the "Trees" class. This demonstrates the limitations of CART's use of a *single* decision tree and its sensitivity to noise. To improve classification accuracy and address these challenges, we will explore ensemble methods like Random Forests, which can capture non-linear relationships and interactions more effectively by using multiple decision trees.
 
 ## Random Forests
 
@@ -952,9 +976,28 @@ Random Forests, a popular ensemble learning method, address these limitations by
 
 ### Assumptions:
 
-Random Forests are non-parametric models that make no assumptions about the functional relationship between the predictors and the outcome variable. This flexibility allows them to capture both non-linearities and hierarchical feature relationships effectively. Additionally, Random Forests are robust to overfitting due to their bagging (bootstrap aggregation) strategy, where each tree is trained on a random subset of the data, and only a random subset of predictors is considered at each split. Out-of-bag (OOB) error, a unique feature of Random Forests, provides an internal measure of model performance without requiring a separate validation dataset, thus maximizing data utilization.
+Random Forests are non-parametric models that make no assumptions about the functional relationship between the predictors and the outcome variable. This flexibility allows them to capture both non-linearities and hierarchical feature relationships effectively. Additionally, Random Forests are robust to overfitting due to their bagging (bootstrap aggregation) strategy, where *each* tree is trained on a random subset of the data, and only a random subset of predictors is considered at each split. Out-of-bag (OOB) error, a unique feature of Random Forests, provides an internal measure of model performance without requiring a separate validation dataset, thus maximizing data utilization.
 
-###Implementation:
+### Model Specification:
+
+Random Forests extend the CART algorithm by building an ensemble of decision trees, each trained on a bootstrapped sample of the data and using a random subset of predictors at each split.
+
+1.  For a dataset $D$ with $n$ observations, each tree in the Random Forest is trained on a bootstrapped sample $D^*$, which is a random sample of $n$ observations drawn *with* replacement.
+
+2.  At each split in a tree:
+
+    -   A random subset $m$ of total \$p\$ predictors is selected ($m << p$).
+    -   The split that minimizes the impurity criterion (e.g. Gini index) is chosen.
+
+3.  For classification, the final class prediction is determined by the majority vote across *all* trees:
+
+    $$
+    \hat{y} = \text{argmax}c \left( \frac{1}{T} \sum_{t=1}^T I_{f_t(x) = c} \right),
+    $$where $f_t(x)$ is the prediction of the $t^{th}$ tree and $T$ is the total number of trees in the forest.
+
+4.  The out-of-bag error (from the samples not included in the bootstrapped dataset) is used to provide an unbiased estimate of model performance without needing a separate test set.
+
+### Implementation:
 
 The Random Forest model was implemented with the same predictors as those used in the original multinomial logistic regression model. Hyperparameter tuning was performed to optimize three key parameters:
 
@@ -1081,9 +1124,9 @@ $$
 \end{array}
 $$
 
-The Random Forest model demonstrates significant advancements over the multinomial logistic regression approaches, effectively addressing key limitations such as class imbalance, non-linear relationships, and feature interactions. By leveraging ensemble learning, Random Forests construct multiple decision trees, enabling the model to capture complex patterns and decision boundaries that were inaccessible to linear models. This flexibility is particularly beneficial for remote sensing data, where spectral, spatial, and temporal relationships are inherently non-linear and often exhibit overlapping class distributions.
+The Random Forest model demonstrates significant advancements over the previous approaches, effectively addressing key limitations such as class imbalance, non-linear relationships, and feature interactions. By leveraging ensemble learning, Random Forests construct multiple decision trees, enabling the model to capture complex patterns and decision boundaries that were inaccessible to linear models. This flexibility is particularly beneficial for remote sensing data, where spectral, spatial, and temporal relationships are inherently non-linear and often exhibit overlapping class distributions.
 
-The model’s performance highlights its strengths in accurately classifying dominant land cover classes as well as improving results for underrepresented categories. For classes such as “Water”, “Barren”, and “Impervious”, the Random Forest achieves near-perfect classification, with F1-scores exceeding 0.92. Specifically, “Water” achieves a precision of 0.996 and recall of 0.985, reflecting the model’s ability to distinguish spectrally distinct classes with high confidence. This improvement extends to minority classes that were poorly handled by the multinomial regression models. For example, the “Snow/Ice” class, which previously exhibited an F1-score as low as 0.07, now achieves a robust 0.973, driven by a recall of 0.947. Such gains indicate the model’s capacity to capture subtle seasonal and spectral signals associated with this class. Similarly, the “Shrubs” class, which remained nearly undetected in previous models, now achieves an F1-score of 0.245, although challenges persist with its relatively low recall of 0.140. This partial improvement can be attributed to the spectral overlap between “Shrubs” and other vegetated classes such as “Grass/Forb/Herb” and “Trees”, highlighting a persistent difficulty in resolving spectrally similar land cover types.
+The model’s performance highlights its strengths in accurately classifying dominant land cover classes as well as improving results for underrepresented categories, especially relative to the baseline multinomial logistic regression models. For classes such as “Water”, “Barren”, and “Impervious”, the Random Forest achieves near-perfect classification, with F1-scores exceeding 0.92. Specifically, “Water” achieves a precision of 0.996 and recall of 0.985, reflecting the model’s ability to distinguish spectrally distinct classes with high confidence. This improvement extends to minority classes that were poorly handled by the multinomial regression models. For example, the “Snow/Ice” class, which previously exhibited an F1-score as low as 0.07, now achieves a robust 0.973, driven by a recall of 0.947. Such gains indicate the model’s capacity to capture subtle seasonal and spectral signals associated with this class. Similarly, the “Shrubs” class, which remained nearly undetected in previous models, now achieves an F1-score of 0.245, although challenges persist with its relatively low recall of 0.140. This partial improvement can be attributed to the spectral overlap between “Shrubs” and other vegetated classes such as “Grass/Forb/Herb” and “Trees”, highlighting a persistent difficulty in resolving spectrally similar land cover types.
 
 The macro-averaged performance metrics further underscore the Random Forest model’s effectiveness. With a precision of 0.910, recall of 0.804, and F1-score of 0.812, the Random Forest *significantly* outperforms the multinomial models. The balanced accuracy of 0.877 indicates that the model achieves reliable classification performance across all classes, mitigating the biases observed previously where dominant classes were disproportionately favored. These results demonstrate the Random Forest’s robustness to class imbalance and its ability to generalize well across diverse land cover categories.
 
@@ -1122,27 +1165,24 @@ The performance evaluation of the Random Forest provides strong evidence of its 
 
 Despite its strong predictive ability, interpretability remains a key limitation of the Random Forest model. While linear models like multinomial regression provide explicit coefficients that quantify the effect of each predictor, Random Forests operate as an ensemble of decision trees, making it difficult to trace *specific* decision-making pathways. Variable importance measures offer a high-level understanding of predictor relevance, as seen with `Veg`, `Elevation`, and `NDVI` emerging as critical variables; however, they do not provide insights into the specific relationships or interactions driving individual predictions. This complexity poses challenges when explaining the model to non-technical audiences, as the lack of clear, interpretable coefficients limits transparency. For technical audiences, the variable importance plots and performance metrics offer valuable insights but require familiarity with ensemble methods to fully appreciate the results.
 
-The computational demands of Random Forests further contribute to their trade-offs. The hyperparameter tuning process, involving grid search over combinations of tree count, feature sampling, and tree depth, increases training time, particularly for large datasets. However, the resulting improvements in performance justify this computational cost. Moreover, the ability to measure Out-of-Bag (OOB) error during training maximizes data utilization and reduces the need for an additional validation set, which is particularly advantageous for resource-constrained settings.
+The computational demands of Random Forests further contribute to their trade-offs. The hyperparameter tuning process, involving grid search over combinations of tree count, feature sampling, and tree depth, increases training time, particularly for large datasets. However, the resulting improvements in performance justify this computational cost. Moreover, the ability to measure out-of-bag error during training maximizes data utilization and reduces the need for an additional validation set, which is particularly advantageous for resource-constrained settings.
 
 Overall, the Random Forest model is highly appropriate for this land cover classification problem, excelling in addressing non-linear relationships, class imbalance, and complex feature interactions without requiring stringent assumptions about the data. Its strong performance metrics affirm its predictive ability and robustness, making it a powerful tool for remote sensing applications. However, the limited interpretability of the model and its computational intensity present challenges for transparency and communication, particularly for non-technical stakeholders.
 
-## Model Comparison and Validation
-
-To compare the performance of the models (logistic regression, Random Forests, and sinusoidal extensions), we will use cross-validation. Model evaluation metrics, such as accuracy, precision, recall, and F1-score, will guide the selection of the best-performing model.
-
 ## Section Conclusion
 
-This section details the implementation of multiple classification models, including logistic regression (linear baseline), Random Forests (non-linear, ensemble), and sinusoidal regression (temporal modeling). Each model addresses specific challenges identified in the data exploration phase, such as overlapping class boundaries, temporal periodicity, and spatial dependencies. The next section will visualize and interpret the results, providing a comparative analysis of model performance and insights into the relationships between predictors and land cover classes.
+This section details the implementation of multiple classification models, including logistic regression (linear baseline), sinusoidal regression (temporal modeling), CART algorithm (non-linear), and Random Forests (non-linear, ensemble). Each model addresses specific challenges identified in the data exploration phase, such as overlapping class boundaries, temporal periodicity, and spatial dependencies.
 
 # Conclusions and Recommendations {#conclusions-recs}
+
 This report presents a comprehensive analysis of land cover classification using multiple modeling approaches, including Multinomial Logistic Regression, a temporal extension through Sinusoidal Regression, the CART algorithm, and the ensemble-based Random Forest model. Each method was systematically evaluated to address specific challenges inherent in remote sensing data, including class imbalance, non-linear relationships, overlapping class boundaries, and temporal-spatial dependencies.
 
-The Multinomial Logistic Regression served as a baseline model, offering interpretability and highlighting the importance of predictors such as NDVI, spectral bands, and spatial indicators. While effective for dominant classes like Water and Grass/Forb/Herb, the model struggled with underrepresented classes such as Shrubs and Snow/Ice, resulting in poor recall and precision for these categories. The sinusoidal extension introduced periodicity through Fourier-transformed sine and cosine terms, capturing seasonal trends, but failed to deliver substantial improvements, suggesting that periodic components provided limited additional predictive power.
+The Multinomial Logistic Regression served as a baseline model, offering interpretability and highlighting the importance of predictors such as NDVI, spectral bands, and spatial indicators. While effective for dominant classes like "Water" and "Grass/Forb/Herb", the model struggled with underrepresented classes such as "Shrubs" and "Snow/Ice", resulting in poor recall and precision for these categories. The sinusoidal extension introduced periodicity through Fourier-transformed sine and cosine terms, capturing seasonal trends, but failed to deliver substantial improvements, suggesting that periodic components provided limited additional predictive power.
 
-The CART algorithm demonstrated the advantages of non-linear models by accounting for complex interactions among predictors. However, its reliance on a single decision tree led to overfitting, particularly for classes with similar spectral signatures such as Trees and Grass/Forb/Herb. Misclassification rates were notably high for minority classes like Shrubs and Snow/Ice, reflecting the challenges of class imbalance in the training data. Geospatial analysis further revealed regional misclassification patterns, particularly in vegetation-dominated areas, underscoring the need for enhanced feature differentiation.
+The CART algorithm demonstrated the advantages of non-linear models by accounting for complex interactions among predictors. However, its reliance on a single decision tree led to overfitting, particularly for classes with similar spectral signatures such as "Trees" and "Grass/Forb/Herb". Misclassification rates were notably high for minority classes like "Shrubs" and "Snow/Ice", reflecting the challenges of class imbalance in the training data. Geospatial analysis further revealed regional misclassification patterns, particularly in vegetation-dominated areas, underscoring the need for enhanced feature differentiation.
 
-The Random Forest model emerged as the best-performing approach, achieving significant improvements in accuracy, precision, and recall. By aggregating predictions from multiple decision trees, Random Forests effectively addressed the limitations of CART, reducing overfitting and capturing complex relationships in the data. With a macro-averaged F1-score of 0.812 and balanced accuracy of 0.877, the Random Forest model demonstrated superior performance across all classes, including substantial gains for minority categories like Snow/Ice. Variable importance analysis further identified NDVI, Vegetation Indicators, and Elevation as key predictors, reinforcing their ecological relevance in distinguishing land cover types.
+The Random Forest model emerged as the best-performing approach, achieving significant improvements in accuracy, precision, and recall. By aggregating predictions from multiple decision trees, Random Forests effectively addressed the limitations of CART, reducing overfitting and capturing complex relationships in the data. With a macro-averaged F1-score of 0.812 and balanced accuracy of 0.877, the Random Forest model demonstrated superior performance across all classes, including substantial gains for minority categories like "Snow/Ice". Variable importance analysis further identified NDVI, Vegetation Indicators, and Elevation as key predictors, reinforcing their ecological relevance in distinguishing land cover types.
 
-To improve our exploration, many factors could be considered. First, enhancing class representation by oversampling minority classes (e.g., Shrubs, Snow/Ice) or undersampling dominant ones could improve model performance.Second, incorporating additional features like texture metrics, vegetation indices, or spatial aggregates could improve class separability. Third, prioritizing ensemble methods like Random Forests or Gradient Boosting is vital for future land cover classification tasks due to their flexibility and robustness.Finally, incorporating spatial relationships explicitly through neighborhood-level statistics or spatial smoothing techniques could account for ecological continuity.
+To improve our exploration, many factors could be considered. First, enhancing class representation by oversampling minority classes (e.g., "Shrubs", "Snow/Ice") or undersampling dominant ones could improve model performance.Second, incorporating additional features like texture metrics, vegetation indices, or spatial aggregates could improve class separability. Third, prioritizing ensemble methods like Random Forests or Gradient Boosting is vital for future land cover classification tasks due to their flexibility and robustness.Finally, incorporating spatial relationships explicitly through neighborhood-level statistics or spatial smoothing techniques could account for ecological continuity.
 
-In conclusion, this study highlights the importance of integrating spectral, temporal, and spatial dimensions into land cover modeling. While linear models offer clarity and baseline performance, advanced non-linear approaches like Random Forests provide the accuracy and robustness required for real-world environmental monitoring. 
+In conclusion, this study highlights the importance of integrating spectral, temporal, and spatial dimensions into land cover modeling. While linear models offer clarity and baseline performance, advanced non-linear approaches like Random Forests provide the accuracy and robustness required for real-world environmental monitoring.

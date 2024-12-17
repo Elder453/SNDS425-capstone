@@ -15,7 +15,3 @@ suppressMessages({
   library(sf)           # Spatial data
   library(tidyverse)    # Data manipulation
 })
-
-# Set constants
-REPRODUCE <- FALSE
-set.seed(425)
