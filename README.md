@@ -80,7 +80,7 @@ SNDS425-capstone/
 
 	`source("scripts/Main.R")`
 
-	**Note**: All scripts must be executed in the order presented in Main.R. The scripts are **not** self-contained.
+	**Note**: All scripts must be executed in the order presented in `Main.R`. The scripts are **NOT** self-contained.
 
 2. **Run the JavaScript Script on Google Earth Engine**  
 	The `Analysis-CARTI.js` script is standalone and designed to run on Google Earth Engine (GEE). The steps are explained in the file. The Google Earth Engine version can be found [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6).
