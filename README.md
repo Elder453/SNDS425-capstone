@@ -14,9 +14,6 @@ Welcome to our S&DS: 425 Capstone Project repository! This project encompasses d
   - [R Scripts](#r-scripts)
   - [JavaScript Script](#javascript-script)
 - [Configuration](#configuration)
-- [Best Practices](#best-practices)
-- [References](#references)
-- [License](#license)
 - [Contact](#contact)
 
 ## Project Overview
@@ -32,6 +29,7 @@ This project aims to perform land cover classification using various machine lea
 
 ## Repository Structure
 
+```
 SNDS425-capstone/
 │
 ├── scripts/
@@ -53,6 +51,7 @@ SNDS425-capstone/
 ├── README.md                          # Project documentation
 ├── report.pdf                         # Generated project report
 └── .gitignore                         # Specifies files and directories to be ignored by Git
+```
 
 ## Getting Started
 
