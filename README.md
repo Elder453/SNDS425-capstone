@@ -85,7 +85,9 @@ SNDS425-capstone/
 1. **Run the Main R Script**  
 	The `Main.R` script orchestrates the execution of all R scripts in the correct order. To execute, run the following commands from the `scripts` directory::
 	
-	`Rscript Main.R`
+	```bash
+	Rscript Main.R
+	```
 
 	- **Important Notes**:  
 		- You must be in the scripts directory before running `Main.R`.  
