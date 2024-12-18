@@ -81,63 +81,73 @@ SNDS425-capstone/
 
 	`source("scripts/Main.R")`
 
-	Note: All scripts must be executed in the order presented in Main.R. The scripts are not self-contained.
+	**Note: All scripts must be executed in the order presented in Main.R. The scripts are not self-contained.**
 
 2.	Run the JavaScript Script on Google Earth Engine
 	The `Analysis-CARTI.js` script is standalone and designed to run on Google Earth Engine (GEE). The steps are explained in the file.
 
 ## Scripts Description
 
-R Scripts
-	•	`LoadLibraries.R`
-		•	Purpose: Installs (if necessary) and loads all required R packages into the environment.
-		•	Usage: Automatically sourced by Main.R.
-	•	`ObtainData.R`
-		•	Purpose: Downloads the raw data (monthly_clean.RDS) from SharePoint.
-		•	Usage: Automatically sourced by Main.R.
-	•	`PrepData.R`
-		•	Purpose: Loads Rawdata.RDS into the environment, cleans it, and saves the cleaned version as Data.rds.
-		•	Usage: Automatically sourced by Main.R.
-	•	`ExploreData.R`
-		•	Purpose: Loads Data.rds into the environment as monthly_clean and explores the data in the order presented in the report.
-		•	Usage: Automatically sourced by Main.R.
-	•	`Analysis-PCA.R`
-		•	Purpose: Performs Principal Component Analysis (PCA) and generates a scree plot.
-		•	Usage: Automatically sourced by Main.R.
-	•	`Analysis-BaselineModel.R`
-		•	Purpose: Implements a baseline multinomial logistic regression model.
-		•	Usage: Automatically sourced by Main.R.
-	•	`Analysis-TemporalModel.R`
-		•	Purpose: Implements a temporal multinomial regression model.
-		•	Usage: Automatically sourced by Main.R.
-	•	`Analysis-RandomForestModel.R`
-		•	Purpose: Implements a Random Forest classification model.
-		•	Usage: Automatically sourced by Main.R.
-	•	`Main.R`
-		•	Purpose: Executes all R scripts in the required sequence.
-		•	Usage: Run this script to perform the entire analysis pipeline.
+### R Scripts
 
-JavaScript Script
-	•	`Analysis-CARTI.js`
-		•	Purpose: Implements a CART (Classification and Regression Trees) classifier for land cover classification using Google Earth Engine (GEE).
-		•	Usage: This script is standalone and serves as proof of concept. It requires a GEE account to execute.
-		•	Note: Ensure that you manually download the required table from x.com, upload it to your GEE assets, and reference it correctly in the script as `var dataset`.
+- **`LoadLibraries.R`**
+  - **Purpose**: Installs (if necessary) and loads all required R packages into the environment.
+  - **Usage**: Automatically sourced by `Main.R`.
+
+- **`ObtainData.R`**
+  - **Purpose**: Downloads the raw data (`monthly_clean.RDS`) from SharePoint.
+  - **Usage**: Automatically sourced by `Main.R`.
+
+- **`PrepData.R`**
+  - **Purpose**: Loads `Rawdata.RDS` into the environment, cleans it, and saves the cleaned version as `Data.rds`.
+  - **Usage**: Automatically sourced by `Main.R`.
+
+- **`ExploreData.R`**
+  - **Purpose**: Loads `Data.rds` into the environment as `monthly_clean` and explores the data in the order presented in the report.
+  - **Usage**: Automatically sourced by `Main.R`.
+
+- **`Analysis-PCA.R`**
+  - **Purpose**: Performs Principal Component Analysis (PCA) and generates a scree plot.
+  - **Usage**: Automatically sourced by `Main.R`.
+
+- **`Analysis-BaselineModel.R`**
+  - **Purpose**: Implements a baseline multinomial logistic regression model.
+  - **Usage**: Automatically sourced by `Main.R`.
+
+- **`Analysis-TemporalModel.R`**
+  - **Purpose**: Implements a temporal multinomial regression model.
+  - **Usage**: Automatically sourced by `Main.R`.
+
+- **`Analysis-RandomForestModel.R`**
+  - **Purpose**: Implements a Random Forest classification model.
+  - **Usage**: Automatically sourced by `Main.R`.
+
+- **`Main.R`**
+  - **Purpose**: Executes all R scripts in the required sequence.
+  - **Usage**: Run this script to perform the entire analysis pipeline.
+
+### JavaScript Script
+
+- **`Analysis-CARTI.js`**
+  - **Purpose**: Implements a CART (Classification and Regression Trees) classifier for land cover classification using Google Earth Engine (GEE).
+  - **Usage**: This script is standalone and serves as proof of concept. It requires a GEE account to execute.
+  - **Note**: Ensure that you manually download the required table from `x.com`, upload it to your GEE assets, and reference it correctly in the script as `var dataset`.
 
 ### Configuration
 
-The `Main.R` script contain configurable constants that can be modified to control the behavior of the analysis.
-	•	REPRODUCE
-		•	Description: Determines whether to re-run all simulations, trainings, and plot generations.
-		•	Values:
-			•	TRUE: Re-run all processes.
-			•	FALSE: Load and use existing results.
-		•	Default: FALSE
-	•	SAVE
-		•	Description: Controls whether to overwrite any PNGs or output files created during the analysis.
-		•	Values:
-			•	TRUE: Overwrite existing files.
-			•	FALSE: Retain existing files.
-		•	Default: FALSE
+The `Main.R` script contains configurable constants that can be modified to control the behavior of the analysis.
+- **REPRODUCE**
+  - **Description**: Determines whether to re-run all simulations, trainings, and plot generations.
+  - **Values**:
+    - `TRUE`: Re-run all processes.
+    - `FALSE`: Load and use existing results.
+  - **Default**: `FALSE`
+- **SAVE**
+  - **Description**: Controls whether to overwrite any PNGs or output files created during the analysis.
+  - **Values**:
+    - `TRUE`: Overwrite existing files.
+    - `FALSE`: Retain existing files.
+  - **Default**: `FALSE`
 
 To modify these constants, edit the `Main.R` script:
 
