@@ -70,20 +70,20 @@ SNDS425-capstone/
    cd SNDS425-capstone
    ```
 
-2.	**Install R and Required Packages**
+2. **Install R and Required Packages**
 	The `LoadLibraries.R` script handles the installation and loading of all necessary R packages. Ensure you have an active internet connection to install any missing packages.
 
 ### Execution
 
-1.	**Run the Main R Script**
+1. **Run the Main R Script**  
 	The `Main.R` script orchestrates the execution of all R scripts in the correct order. To execute:
 
 	`source("scripts/Main.R")`
 
-  - **Note**: All scripts must be executed in the order presented in Main.R. The scripts are **not** self-contained.
+	**Note**: All scripts must be executed in the order presented in Main.R. The scripts are **not** self-contained.
 
-2.	Run the JavaScript Script on Google Earth Engine
-  - The `Analysis-CARTI.js` script is standalone and designed to run on Google Earth Engine (GEE). The steps are explained in the file. The Google Earth Engine version can be found [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6).
+2. **Run the JavaScript Script on Google Earth Engine**  
+	The `Analysis-CARTI.js` script is standalone and designed to run on Google Earth Engine (GEE). The steps are explained in the file. The Google Earth Engine version can be found [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6).
 
 ## Scripts Description
 
