@@ -1,4 +1,4 @@
-# SNDS425 Capstone Project
+# S&DS 425: Landcover Classification Project
 
 Welcome to our S&DS: 425 Capstone Project repository! This project encompasses data acquisition, preprocessing, exploratory analysis, and the implementation of various machine learning models for land cover classification. The repository includes both R and JavaScript scripts tailored for different aspects of the analysis.
 
@@ -33,23 +33,25 @@ This project aims to perform land cover classification using various machine lea
 SNDS425-capstone/
 │
 ├── scripts/
-│   ├── LoadLibraries.R                # Installs and loads necessary R packages
-│   ├── ObtainData.R                   # Downloads raw data from SharePoint into ../sims/
-│   ├── PrepData.R                     # Cleans and prepares the dataset
-│   ├── ExploreData.R                  # Performs exploratory data analysis
-│   ├── Analysis-PCA.R                 # Performs PCA and generates scree plot
+│   ├── LoadLibraries.R              # Installs and loads necessary R packages
+│   ├── ObtainData.R                 # Downloads raw data from SharePoint into ../sims/
+│   ├── PrepData.R                    # Cleans and prepares the dataset
+│   ├── ExploreData.R                # Performs exploratory data analysis
+│   ├── Analysis-PCA.R              # Performs PCA and generates scree plot
 │   ├── Analysis-BaselineModel.R       # Implements baseline multinomial logistic regression
 │   ├── Analysis-TemporalModel.R       # Implements temporal multinomial regression
 │   ├── Analysis-RandomForestModel.R   # Implements Random Forest model
-│   ├── Analysis-CARTI.js              # CART classifier script for Google Earth Engine
-│   └── Main.R                         # Executes all R scripts in sequence
+│   ├── Analysis-CARTI.js           # CART classifier script for Google Earth Engine
+│   ├── Main.R                            # Executes all R scripts in sequence
+│   ├── exec-summary.qmd        # Quarto markdown for generating exec-summary.pdf
 │   └── report.qmd                     # Quarto markdown for generating report.pdf
 │
 ├── sims/
 │   └── …                              # Directory for graphs saved as PNGs and all RDS files.
 │
-├── README.md                          # Project documentation
+├── README.md                    # Project documentation
 ├── report.pdf                         # Generated project report
+├── exec-summary.pdf           # Generated executive summary
 └── .gitignore                         # Specifies files and directories to be ignored by Git
 ```
 
