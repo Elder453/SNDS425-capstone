@@ -10,26 +10,13 @@ urlcolor: blue
 ---
 
 ```{r, echo=FALSE}
-suppressMessages({
-  library(caret)
-  library(ggplot2)
-  library(ggcorrplot)
-  library(janitor)      # Clean col names
-  library(nnet)         # Multinomial
-  library(pubtheme)
-  library(randomForest) # Random forest
-  library(ranger)       # Random forest
-  library(sf)
-  library(tidyverse)
-  library(MASS)
-})
-
 # Constants
 REPRODUCE <- FALSE
 set.seed(425)
 
-# Read CSV file
-monthly_clean <- read_csv("monthly_clean.csv", show_col_types = FALSE)
+source("LoadLibraries.R")
+source("ObtainData.R")
+monthly_clean <- readRDS("../sims/Rawdata.rds")
 monthly_clean <- monthly_clean |>
   clean_names() |>
   mutate(
@@ -124,9 +111,9 @@ if (REPRODUCE) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
           legend.position = "none"))
   
-  ggsave("sims/landcover_distribution.png", plot = p, width = 8, height = 4, dpi = 300)
+  ggsave("../sims/landcover_distribution.png", plot = p, width = 8, height = 4, dpi = 300)
 } else {
-  knitr::include_graphics("sims/landcover_distribution.png")
+  knitr::include_graphics("../sims/landcover_distribution.png")
 }
 ```
 
@@ -151,9 +138,9 @@ if (REPRODUCE) {
          x = "Land Cover Class", y = "NDVI") +
     theme(axis.text.x = element_text(size = 8)))
   
-    ggsave("sims/ndvi_boxplot.png", plot = p, width = 8, height = 4, dpi = 300)
+    ggsave("../sims/ndvi_boxplot.png", plot = p, width = 8, height = 4, dpi = 300)
 } else {
-  knitr::include_graphics("sims/ndvi_boxplot.png")
+  knitr::include_graphics("../sims/ndvi_boxplot.png")
 }
 ```
 
@@ -185,9 +172,9 @@ if (REPRODUCE) {
     facet_wrap(~spectral_band, scales = "free_y") +
     theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)))
 
-  ggsave("sims/spectral_bands_boxplot.png", plot = p, width = 8, height = 6, dpi = 300)
+  ggsave("../sims/spectral_bands_boxplot.png", plot = p, width = 8, height = 6, dpi = 300)
 } else {
-  knitr::include_graphics("sims/spectral_bands_boxplot.png")
+  knitr::include_graphics("../sims/spectral_bands_boxplot.png")
 }
 ```
 
@@ -209,7 +196,7 @@ if (REPRODUCE) {
     labs(title = "Monthly Trends in NDVI",
          x = "Month", y = "Mean NDVI"))
   
-  ggsave("sims/ndvi_monthly.png", plot = p, width = 8, height = 3.5, dpi = 300)
+  ggsave("../sims/ndvi_monthly.png", plot = p, width = 8, height = 3.5, dpi = 300)
   
   (p <- ggplot(monthly_clean, 
                aes(x = season, 
@@ -222,10 +209,10 @@ if (REPRODUCE) {
     labs(title = "Seasonal Trends in NDVI",
          x = "Season", y = "Mean NDVI"))
   
-  ggsave("sims/ndvi_seasonal.png", plot = p, width = 8, height = 3.5, dpi = 300)
+  ggsave("../sims/ndvi_seasonal.png", plot = p, width = 8, height = 3.5, dpi = 300)
 } else {
-  knitr::include_graphics("sims/ndvi_monthly.png")
-  knitr::include_graphics("sims/ndvi_seasonal.png")
+  knitr::include_graphics("../sims/ndvi_monthly.png")
+  knitr::include_graphics("../sims/ndvi_seasonal.png")
 }
 ```
 
@@ -258,9 +245,9 @@ if (REPRODUCE) {
     ) +
     # reduce y-axis ticks
     scale_y_continuous(breaks = scales::pretty_breaks(n = 3)))
-  ggsave("sims/spectral_bands_seasonal.png", plot = p, width = 8, height = 5, dpi = 300)
+  ggsave("../sims/spectral_bands_seasonal.png", plot = p, width = 8, height = 5, dpi = 300)
 } else {
-  knitr::include_graphics("sims/spectral_bands_seasonal.png")
+  knitr::include_graphics("../sims/spectral_bands_seasonal.png")
 }
 ```
 
@@ -282,9 +269,9 @@ if (REPRODUCE) {
          x = "Year", y = "Mean NDVI") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)))
   
-  ggsave("sims/ndvi_yearly.png", plot = p, width = 8, height = 4, dpi = 300)
+  ggsave("../sims/ndvi_yearly.png", plot = p, width = 8, height = 4, dpi = 300)
 } else {
-  knitr::include_graphics("sims/ndvi_yearly.png")
+  knitr::include_graphics("../sims/ndvi_yearly.png")
 }
 ```
 
@@ -307,9 +294,9 @@ if (REPRODUCE) {
   ) +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 3)))
   
-  ggsave("sims/spectral_bands_yearly.png", plot = p, width = 8, height = 5, dpi = 300)
+  ggsave("../sims/spectral_bands_yearly.png", plot = p, width = 8, height = 5, dpi = 300)
 } else {
-  knitr::include_graphics("sims/spectral_bands_yearly.png")
+  knitr::include_graphics("../sims/spectral_bands_yearly.png")
 }
 ```
 
@@ -340,9 +327,9 @@ if (REPRODUCE) {
          x = "Longitude", y = "Latitude", color = "NDVI") +
     theme(legend.position = "none"))
   
-  ggsave("sims/ndvi_spatial.png", plot = p, width = 8, height = 3.75, dpi = 300)
+  ggsave("../sims/ndvi_spatial.png", plot = p, width = 8, height = 3.75, dpi = 300)
 } else {
-  knitr::include_graphics("sims/ndvi_spatial.png")
+  knitr::include_graphics("../sims/ndvi_spatial.png")
 }
 ```
 
@@ -365,9 +352,9 @@ if (REPRODUCE) {
       legend.position = "none")
    )
   
-  ggsave("sims/spectral_bands_spatial.png", plot = p, width = 8, height = 4.5, dpi = 300)
+  ggsave("../sims/spectral_bands_spatial.png", plot = p, width = 8, height = 4.5, dpi = 300)
 } else {
-  knitr::include_graphics("sims/spectral_bands_spatial.png")
+  knitr::include_graphics("../sims/spectral_bands_spatial.png")
 }
 ```
 
@@ -419,9 +406,9 @@ if (REPRODUCE) {
       axis.title.y=element_blank()
       ))
   
-  ggsave("sims/correlation_matrix.png", plot = p, width = 8, height = 6, dpi = 300)
+  ggsave("../sims/correlation_matrix.png", plot = p, width = 8, height = 6, dpi = 300)
 } else {
-  knitr::include_graphics("sims/correlation_matrix.png")
+  knitr::include_graphics("../sims/correlation_matrix.png")
 }
 ```
 
@@ -537,9 +524,9 @@ model_data <- data.frame(
 if (REPRODUCE) {
   # Fit multinomial logistic regression
   logistic_model <- multinom(Outcome ~ ., data = model_data)
-  saveRDS(logistic_model, "sims/log_model.RDS")
+  saveRDS(logistic_model, "../sims/log_model.RDS")
 } else {
-  logistic_model <- readRDS("sims/log_model.RDS")
+  logistic_model <- readRDS("../sims/log_model.RDS")
 }
 ```
 
@@ -624,9 +611,9 @@ if (REPRODUCE) {
       axis.text.y = element_text(size = 10)
     ))
   
-  ggsave("sims/multinom_model_coeffs_heatmap.png", plot = p, width = 8, height = 6, dpi = 300)
+  ggsave("../sims/multinom_model_coeffs_heatmap.png", plot = p, width = 8, height = 6, dpi = 300)
 } else {
-  knitr::include_graphics("sims/multinom_model_coeffs_heatmap.png")
+  knitr::include_graphics("../sims/multinom_model_coeffs_heatmap.png")
 }
 ```
 
@@ -768,9 +755,9 @@ model_data_tmprl <- data.frame(
 if (REPRODUCE) {
   # Fit multinomial logistic regression
   logistic_model <- multinom(Outcome ~ ., data = model_data_tmprl)
-  saveRDS(logistic_model, "sims/log_model_tmprl_month.RDS")
+  saveRDS(logistic_model, "../sims/log_model_tmprl_month.RDS")
 } else {
-  logistic_model <- readRDS("sims/log_model_tmprl_month.RDS")
+  logistic_model <- readRDS("../sims/log_model_tmprl_month.RDS")
 }
 ```
 
@@ -828,9 +815,9 @@ if (REPRODUCE) {
       axis.text.y = element_text(size = 10)
     ))
   
-  ggsave("sims/tmprl_multinom_model_coeffs_heatmap.png", plot = p, width = 8, height = 6, dpi = 300)
+  ggsave("../sims/tmprl_multinom_model_coeffs_heatmap.png", plot = p, width = 8, height = 6, dpi = 300)
 } else {
-  knitr::include_graphics("sims/tmprl_multinom_model_coeffs_heatmap.png")
+  knitr::include_graphics("../sims/tmprl_multinom_model_coeffs_heatmap.png")
 }
 ```
 
@@ -885,7 +872,7 @@ Class imbalance poses a significant challenge in classification tasks, as minori
 
 We visualize the dataset using the [Google Earth Engine](https://earthengine.google.com) interface:
 
-![Map of Visualized Data](sims/actual_map.png)
+![Map of Visualized Data](../sims/actual_map.png)
 
 The CART model was trained on 70% of the dataset and tested on 30% of the dataset, using predictors: `NDVI`, `SR_B1`, `SR_B2`, `SR_B3`, `SR_B4`, `SR_B5`, `SR_B7`, `elevation_meters` (The full code is available [here](https://code.earthengine.google.com/27be438d2822e76c39af6aece7d61aad)).
 
@@ -919,7 +906,7 @@ The classifier incorrectly classified 3339 observations (44.7% of the testing se
 
 These misclassifications were styled dynamically by type and visualized on the map to explore any geospatial groupings. We see that "Trees" and "Grass/Forb/Herb" are often misclassified as one another along the Northeast, but "Grass/Forb/Herb" is incorrectly classified as "Trees" in the Midwest. This shows that the model struggles to distinguish between these two classes in certain regions, but especially where "Grass/Forb/Herb" is prevalent.
 
-![Map of Top 6 Misclassifications Against Actual Values](sims/layeredmap.png)
+![Map of Top 6 Misclassifications Against Actual Values](../sims/layeredmap.png)
 
 Given certain classes appeared to host disproportionate misclassifications (e.g., "Trees"), we explored misclassification rates, precision, and recall by class, shown in the table. First, misclassification rates were calculated as follows:
 
@@ -975,7 +962,7 @@ We defined a rectangular region encompassing New York and extended it outward by
 
 A Landsat 8 composite image is generated for the region, and predictor bands (B1–B7) are sampled at training points to train a CART classifier. The classifier is then applied to the composite image to produce a classified landcover map. The classification results are validated using test points, and a confusion matrix is computed to evaluate performance, including overall accuracy and the Kappa coefficient. Misclassified points, identified by comparing predicted values (classification) to true values (landcover), are highlighted in red and displayed on the following map:
 
-![Map of Classified Landcover in New York](sims/mapoverlays.png)
+![Map of Classified Landcover in New York](../sims/mapoverlays.png)
 
 ### Performance Evaluation
 
@@ -1062,7 +1049,7 @@ if (REPRODUCE) {
     # Store the OOB error
     results$OOB_error[i] <- rf_tuned$prediction.error
   }
-  saveRDS(results, "sims/rf_results.RDS")
+  saveRDS(results, "../sims/rf_results.RDS")
   
   set.seed(425)
   best_params <- results[which.min(results$OOB_error), ]
@@ -1072,10 +1059,10 @@ if (REPRODUCE) {
                    importance = "impurity", 
                    mtry = best_params$mtry,
                    max.depth = best_params$max_depth)
-  saveRDS(rf_model, "sims/rf_model.RDS")
+  saveRDS(rf_model, "../sims/rf_model.RDS")
 } else {
-  results <- readRDS("sims/rf_results.RDS")
-  rf_model <- readRDS("sims/rf_model.RDS")
+  results <- readRDS("../sims/rf_results.RDS")
+  rf_model <- readRDS("../sims/rf_model.RDS")
 }
 ```
 

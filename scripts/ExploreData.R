@@ -3,13 +3,15 @@
 # Purpose: Explore and visualize the data.
 # ===========================
 
+
 # ---------------------------
 # Load Prepared Data
 # ---------------------------
 # Read the cleaned and prepared monthly data from an RDS file.
 # The data is expected to contain variables such as land cover 
 # classes, NDVI, spectral bands, etc.
-monthly_clean <- readRDS("Data.rds")
+monthly_clean <- readRDS("../sims/Data.RDS")
+
 
 # ---------------------------
 # Outcome Variable Exploration
@@ -323,7 +325,6 @@ if (REPRODUCE) {
   # Include the existing spectral bands spatial distribution image in report.
   knitr::include_graphics("../sims/spectral_bands_spatial.png")
 }
-
 
 
 # ---------------------------

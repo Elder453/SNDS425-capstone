@@ -4,7 +4,7 @@
 # ===========================
 
 # Load raw data
-rawdata <- readRDS("Rawdata.rds")
+rawdata <- readRDS("../sims/Rawdata.RDS")
 
 # Clean and organize data
 monthly_clean <- rawdata |>
@@ -25,4 +25,4 @@ monthly_clean <- rawdata |>
   dplyr::select(-image_year, -elevation_bins)
 
 # Save prepared data for analysis
-saveRDS(monthly_clean, "Data.rds")
+saveRDS(monthly_clean, "../sims/Data.RDS")

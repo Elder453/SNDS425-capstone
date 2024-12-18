@@ -34,7 +34,7 @@ SNDS425-capstone/
 │
 ├── scripts/
 │   ├── LoadLibraries.R                # Installs and loads necessary R packages
-│   ├── ObtainData.R                   # Downloads raw data from SharePoint
+│   ├── ObtainData.R                   # Downloads raw data from SharePoint into ../sims/
 │   ├── PrepData.R                     # Cleans and prepares the dataset
 │   ├── ExploreData.R                  # Performs exploratory data analysis
 │   ├── Analysis-PCA.R                 # Performs PCA and generates scree plot
@@ -45,8 +45,8 @@ SNDS425-capstone/
 │   └── Main.R                         # Executes all R scripts in sequence
 │   └── report.qmd                     # Quarto markdown for generating report.pdf
 │
-├── sim/
-│   └── …                              # Directory for plots and graphs saved as PNGs.
+├── sims/
+│   └── …                              # Directory for graphs saved as PNGs and all RDS files.
 │
 ├── README.md                          # Project documentation
 ├── report.pdf                         # Generated project report
@@ -83,7 +83,7 @@ SNDS425-capstone/
 	**Note: All scripts must be executed in the order presented in Main.R. The scripts are not self-contained.**
 
 2.	Run the JavaScript Script on Google Earth Engine
-	The `Analysis-CARTI.js` script is standalone and designed to run on Google Earth Engine (GEE). The steps are explained in the file.
+	The `Analysis-CARTI.js` script is standalone and designed to run on Google Earth Engine (GEE). The steps are explained in the file. The Google Earth Engine version can be found [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6).
 
 ## Scripts Description
 
