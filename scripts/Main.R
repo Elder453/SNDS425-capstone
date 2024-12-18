@@ -7,7 +7,7 @@
 source("LoadLibraries.R")
 
 # Set constants
-REPRODUCE <- TRUE  # Re-run code or load saved results
+REPRODUCE <- FALSE  # Re-run code or load saved results
 SAVE <- FALSE       # Overwrite saved training results
 set.seed(425)       # For reproducibility
 
