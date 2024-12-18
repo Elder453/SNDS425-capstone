@@ -80,10 +80,10 @@ SNDS425-capstone/
 
 	`source("scripts/Main.R")`
 
-	**Note: All scripts must be executed in the order presented in Main.R. The scripts are not self-contained.**
+  - **Note**: All scripts must be executed in the order presented in Main.R. The scripts are **not** self-contained.
 
 2.	Run the JavaScript Script on Google Earth Engine
-	The `Analysis-CARTI.js` script is standalone and designed to run on Google Earth Engine (GEE). The steps are explained in the file. The Google Earth Engine version can be found [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6).
+  - The `Analysis-CARTI.js` script is standalone and designed to run on Google Earth Engine (GEE). The steps are explained in the file. The Google Earth Engine version can be found [here](https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6).
 
 ## Scripts Description
 
@@ -94,15 +94,15 @@ SNDS425-capstone/
   - **Usage**: Automatically sourced by `Main.R`.
 
 - **`ObtainData.R`**
-  - **Purpose**: Downloads the raw data (`monthly_clean.RDS`) from SharePoint.
+  - **Purpose**: Downloads the raw data (`Rawdata.RDS`, `rf_results.RDS`, `rf_model.RDS`, `log_model.RDS`, `log_model_tmprl_month.RDS`) from SharePoint to the `sims` folder.
   - **Usage**: Automatically sourced by `Main.R`.
 
 - **`PrepData.R`**
-  - **Purpose**: Loads `Rawdata.RDS` into the environment, cleans it, and saves the cleaned version as `Data.rds`.
+  - **Purpose**: Loads `Rawdata.RDS` into the environment, cleans it, and saves the cleaned version as `Data.rds` in the `sims` folder.
   - **Usage**: Automatically sourced by `Main.R`.
 
 - **`ExploreData.R`**
-  - **Purpose**: Loads `Data.rds` into the environment as `monthly_clean` and explores the data in the order presented in the report.
+  - **Purpose**: Loads `../sims/Data.rds` into the environment as `monthly_clean` and explores the data in the order presented in the report.
   - **Usage**: Automatically sourced by `Main.R`.
 
 - **`Analysis-PCA.R`**
