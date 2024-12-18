@@ -4,14 +4,14 @@
 #          and save it locally as "Rawdata.rds".
 # ===========================
 
-# Define the SharePoint link to the RDS file
+# SharePoint link to the RDS file
 sharepoint_link <- "https://yaleedu-my.sharepoint.com/:u:/g/personal/elder_veliz_yale_edu/Ec6zY8QnpxJPg4sz41MNLnABYmoX7AN_iJ3Av3FcTlyIyQ?e=gfH3pQ"
 download_link <- paste0(sharepoint_link, "&download=1")
 
 # Local file path to save the raw RDS file
 output_file <- "Rawdata.rds"
 
-# Download the RDS file
+# Download RDS file
 download_rawdata <- function(url, output_path) {
   cat("Starting download of raw RDS data...\n")
   

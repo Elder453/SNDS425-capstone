@@ -3,12 +3,19 @@
 # Purpose: Add temporal sinusoidal features and fit multinomial regression.
 # ===========================
 
-# ---- Sinusoidal Multinomial Logistic Regression Model ----
+
+# ---------------------------
+# Visualization: Monthly Mean NDVI
+# ---------------------------
+# Plot the monthly mean NDVI to visualize seasonal trends.
+
+# Aggregate NDVI by month to compute mean NDVI for each month
 ndvi_monthly <- monthly_clean |>
   group_by(month) |>
   summarize(mean_ndvi = mean(ndvi, na.rm = TRUE)) |>
   arrange(month)
 
+# Create a line plot of monthly mean NDVI
 ggplot(ndvi_monthly, aes(x = month, y = mean_ndvi)) +
   geom_line(group = 1, color = "darkgreen") +
   geom_point(size = 2, color = "darkred") +
@@ -16,8 +23,15 @@ ggplot(ndvi_monthly, aes(x = month, y = mean_ndvi)) +
   labs(title = "Monthly Mean NDVI", x = "Month", y = "Mean NDVI") +
   theme_pub()
 
+
+# ---------------------------
+# Sinusoidal Analysis Using FFT
+# ---------------------------
+# Analyze the frequency components of the NDVI time series to 
+# identify dominant cycles.
+
 if (REPRODUCE) {
-  # Subtract mean NDVI to remove DC component
+  # Subtract mean NDVI to remove DC component (center data at 0)
   ndvi_detrended <- ndvi_monthly$mean_ndvi - mean(ndvi_monthly$mean_ndvi)
   
   # Perform FFT on detrended NDVI
@@ -37,6 +51,13 @@ if (REPRODUCE) {
   )
 }
 
+
+# ---------------------------
+# Sinusoidal Feature Engineering
+# ---------------------------
+# This section adds sinusoidal features to capture the cyclical 
+# nature of temporal data (months).
+
 # Encode month as a numeric variable (1 = January, ..., 12 = December)
 month_numeric <- as.numeric(monthly_clean$month)
 
@@ -47,7 +68,13 @@ freq_month <- 1 / 12
 monthly_clean$sin_month <- sin(2 * pi * freq_month * month_numeric)
 monthly_clean$cos_month <- cos(2 * pi * freq_month * month_numeric)
 
-# Standardize continuous predictors
+
+# ---------------------------
+# Data Preparation
+# ---------------------------
+# Standardize continuous predictors and construct the final dataset for modeling.
+
+# Standardize continuous predictors to ensure they are on the same scale
 standardized_predictors <- scale(data.frame(
   PC1 = pca_bands$x[, 1],                     # First PC
   PC2 = pca_bands$x[, 2],                     # Second PC
@@ -65,16 +92,28 @@ model_data_tmprl <- data.frame(
   Outcome = monthly_clean$dominant_landcover        # Target: Land Cover Class
 )
 
+
+# ---------------------------
+# Multinomial Logistic Regression Model Training
+# ---------------------------
+
 if (REPRODUCE) {
   # Fit multinomial logistic regression
   logistic_model <- multinom(Outcome ~ ., data = model_data_tmprl)
   
+  # Save the trained model to disk if the SAVE flag is set to TRUE.
   if (SAVE) {
     saveRDS(logistic_model, "../sims/log_model_tmprl_month.RDS")
   }
 } else {
+  # If not reproducing, load the existing trained model from disk.
   logistic_model <- readRDS("../sims/log_model_tmprl_month.RDS")
 }
+
+
+# ---------------------------
+# Model Evaluation
+# ---------------------------
 
 if (REPRODUCE) {
   set.seed(425)
@@ -94,9 +133,15 @@ if (REPRODUCE) {
   # Macro-averages for Recall, Precision, and F1-score
   macro_avg <- colMeans(class_metrics)
   
+  # Combine class-wise metrics with macro-averaged metrics
   (results_table <- class_metrics |> 
       rbind(macro_avg))
 }
+
+
+# ---------------------------
+# Coefficient Analysis
+# ---------------------------
 
 if (REPRODUCE) {
   # Extract coefficients
@@ -106,7 +151,7 @@ if (REPRODUCE) {
     rownames_to_column("Predictor") |>
     pivot_longer(-Predictor, names_to = "Class", values_to = "Coefficient")
   
-  # Create heatmap
+  # Create a heatmap to visualize the coefficients for each predictor and class
   (p <- ggplot(coef_long, aes(x = Class, y = Predictor, fill = Coefficient)) +
       geom_tile() +
       scale_fill_gradient2(low = "darkred", 
@@ -126,10 +171,12 @@ if (REPRODUCE) {
         axis.text.y = element_text(size = 10)
       ))
   
+  # Save the coefficient heatmap plot to disk if the SAVE flag is set to TRUE.
   if (SAVE) {
     ggsave("../sims/tmprl_multinom_model_coeffs_heatmap.png", 
            plot = p, width = 8, height = 6, dpi = 300)
   }
 } else {
+  # If not reproducing, include existing coefficient heatmap image in report.
   knitr::include_graphics("../sims/tmprl_multinom_model_coeffs_heatmap.png")
 }

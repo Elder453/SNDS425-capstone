@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Elder Veliz &amp; Emmanuelle Brindamour">
+<meta name="dcterms.date" content="2024-12-17">
+
+<title>S&amp;DS 425 Report: Landcover Classification</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="report_files/libs/quarto-html/quarto.js"></script>
+<script src="report_files/libs/quarto-html/popper.min.js"></script>
+<script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="report_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">S&amp;DS 425 Report: Landcover Classification</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Elder Veliz &amp; Emmanuelle Brindamour </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">December 17, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="abstract" class="level1">
+<h1>Abstract</h1>
+<p>Accurately classifying land cover types is essential for effective environmental monitoring and management, addressing critical issues such as climate change, deforestation, and urban expansion. This study utilizes satellite-derived data, including spectral bands and the Normalized Difference Vegetation Index (NDVI), alongside geographic and temporal information, to classify land cover across diverse regions in the United States. We employed a comparative analysis of three machine learning models: Multinomial Logistic Regression, Classification and Regression Trees (CART), and Random Forests (RF), to evaluate their effectiveness in handling complex, multi-class classification tasks characterized by significant class imbalances and overlapping spectral signatures. Through rigorous data exploration, including dimensionality reduction and visualization of spatial-temporal patterns, we informed the feature engineering process to enhance model performance. The Random Forest model emerged as the most robust, significantly outperforming the baseline logistic regression and initial CART models by achieving a macro-averaged F1-score of 0.812, balanced accuracy of 0.877, and better handling of underrepresented classes. Key predictors such as vegetation indicators, elevation, and NDVI were identified as highly influential in the classification process. The findings demonstrate the superiority of ensemble learning methods like Random Forests in land cover classification, offering reliable and actionable insights for environmental decision-making. This research underscores the importance of advanced modeling techniques in overcoming the challenges posed by heterogeneous and imbalanced datasets in remote sensing applications.</p>
+<div style="page-break-after: always;"></div>
+</section>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>Understanding and predicting changes in land cover and land use over time is critical for addressing pressing environmental challenges, such as climate change, deforestation, urbanization, and agricultural productivity. Remote sensing data, particularly from satellite imagery, provides a powerful tool for monitoring these changes over large geographic areas and long time periods. By leveraging satellite-derived spectral bands and vegetation indices, such as the Normalized Difference Vegetation Index, researchers can classify land cover types, assess their spatial-temporal dynamics, and derive actionable insights for decision-making in environmental management.</p>
+<p>The motivation for this project arises from the need to integrate spatial and temporal dimensions into land cover modeling. While static models offer a snapshot of land cover at a <em>single</em> point in time, they fail to capture seasonal oscillations, inter-annual variability, and spatial dependencies inherent in natural systems. For example, vegetation exhibits predictable seasonal cycles that can be modeled using sinusoidal functions, revealing patterns in NDVI amplitude and frequency that correspond to land cover types. Additionally, nearby pixels often share similar characteristics due to ecological and geographic continuity, underscoring the importance of spatial relationships in classification models. These dynamics are not only scientifically interesting but also essential for improving the accuracy and interpretability of predictive models.</p>
+<p>In this study, we evaluate and compare Multinomial Logistic Regression, Classification and Regression Trees, and Random Forests to determine the most effective approach for land cover classification, considering the complexities identified during data exploration.</p>
+<p>The data used in this study includes satellite-derived spectral bands (from the <a href="https://www.usgs.gov/special-topics/lcmap">Landsat collection</a>) and associated geospatial features, such as NDVI, land cover labels, and pixel locations. Temporal attributes such as month and year provide the foundation for modeling seasonal and long-term trends, while spatial attributes enable the incorporation of neighborhood-level statistics. The data exploration phase revealed significant class imbalances and collinearity among spectral bands, informing the feature engineering steps such as Principal Component Analysis to reduce dimensionality and enhance model performance.</p>
+<p>This paper is organized as follows: <a href="#data-exploration-and-visualization">Section 2</a> provides an overview of the data, including exploratory analysis and visualizations that highlight key relationships and patterns. <a href="#modelinganalysis">Section 3</a> describes the modeling approaches, including both regression and classification methods, with a focus on integrating temporal features into the predictive framework. It then discusses the visualization and interpretation of the results, comparing model performance and interpretability across approaches. Finally, <a href="#conclusions-recs">Section 4</a> presents conclusions, recommendations, and ideas for future research directions, emphasizing the potential of random forest models for advancing land cover studies. By systematically exploring these dimensions, this project aims to contribute to a deeper understanding of land cover dynamics and their applications in environmental monitoring and management.</p>
+<div style="page-break-after: always;"></div>
+</section>
+<section id="data-exploration-and-visualization" class="level1">
+<h1>Data Exploration and Visualization</h1>
+<p>To develop an effective predictive framework for land cover classification, a detailed exploration of the dataset is essential. This section investigates key characteristics of the data, examines relationships between predictors and the outcome variable, and provides visual evidence to support modeling assumptions. Through descriptive statistics and visualizations, we aim to justify the choice of features, highlight relevant patterns, and assess the validity of the modeling approach.</p>
+<section id="overview-of-the-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="overview-of-the-dataset">Overview of the Dataset</h2>
+<p>The dataset comprises satellite-derived spectral bands (e.g., B1 through B7), the NDVI (Normalized Difference Vegetation Index), and metadata such as plot IDs, geographic coordinates (<code>lat</code> and <code>lon</code>), and temporal information (<code>month</code> and <code>year</code>). The primary outcome of interest is <code>dominant_landcover</code>, a categorical variable representing land cover classes. A review of the dataset variables follows:</p>
+<ul>
+<li><code>PlotID</code>: A unique identifier for each observation.</li>
+<li><code>Month</code> and <code>Year</code>: Categorical, temporal features indicating the month and year of the observation.</li>
+<li><code>SR_B1</code>: A continuous measurement of the “blue” spectral band, which captures visible blue light and is sensitive to water bodies and atmospheric aerosols.</li>
+<li><code>SR_B2</code>: A continuous measurement of the “green” spectral band, which captures visible green light and is sensitive to vegetation health and possibly land-water boundaries.</li>
+<li><code>SR_B3</code>: A continuous measurement of the “red” spectral band, which captures visible red light and is usually used to capture chlorophyll absorption in vegetation.</li>
+<li><code>SR_B4</code>: A continuous measurement of the “near-infrared” spectral band, which captures near-infrared light and is sensitive to vegetation density.</li>
+<li><code>SR_B5</code>: A continuous measurement of the “shortwave infrared 1” spectral band, which captures shortwave infrared light and is sensitive to moisture content in soil and vegetation.</li>
+<li><code>SR_B7</code>: A continuous measurement of the “shortwave infrared 2” spectral band, which captures shortwave infrared light and differentiates vegetation stress, soil properties, and geology.</li>
+<li><code>NDVI</code>: A continuous measurement of the Normalized Difference Vegetation Index, which quantifies vegetation density and health based on the contrast between red and near-infrared light (effectively, a non-linear function of <code>SR_B3</code> and <code>SR_B4</code>).</li>
+<li><code>Lat</code> and <code>Lon</code>: The latitude and longitude coordinates of the pixel.</li>
+<li><code>Dominant_Landcover</code>: A categorical outcome variable representing the dominant land cover class at the pixel level.</li>
+<li><code>Dominant_LandUse</code>: A categorical outcome variable representing the dominant land use class at the pixel level.</li>
+<li><code>Season</code>: A categorical variable for the season of observation.</li>
+<li><code>Veg</code>: A binary variable indicating whether the pixel’s dominant landcover is vegetated (1 for “Grass/Forb/Herb”, “Shrubs”, and “Trees”) or non-vegetated (0 for “Snow/Ice”, “Impervious”, “Barren”, and “Water”).</li>
+<li><code>EastWest</code>: A binary variable indicating whether the pixel is located east (1) or west (0) of the median longitude.</li>
+<li><code>NorthSouth</code>: A binary indicating whether the pixel is located north (1) or south (0) of the median latitude.</li>
+<li><code>Elevation_meters</code>: A continuous measurement of the elevation in meters above sea level at the pixel location.</li>
+</ul>
+</section>
+<section id="exploration-of-outcome" class="level2">
+<h2 class="anchored" data-anchor-id="exploration-of-outcome">Exploration of Outcome</h2>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/landcover_distribution.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The distribution of land cover classes reveals substantial class imbalances, which will have important implications for the modeling process. The “Grass/Forb/Herb” class constitutes the majority, accounting for 45.27% of the observations, followed by the “Trees” class at 31.93%. Together, just these two classes dominate the dataset, representing over three-quarters of all observations. Their prevalence, nevertheless, is consistent with the ecological characteristics of United States.</p>
+<p>In contrast, other land cover classes are significantly underrepresented. For instance, “Water” and “Shrubs” account for 9.09% and 8.24% of observations, respectively, while “Barren” and “Impervious” cover only 4.27% and 1.18%. The “Snow/Ice” class constitutes a mere 0.01% of observations, reflecting minimal spatial extent. This extreme imbalance suggests challenges for classification models, as underrepresented classes may be overshadowed during training, leading to biased predictions.</p>
+<p>From a modeling perspective, class imbalance necessitates careful consideration of strategies to mitigate its effects. Techniques such as class weighting, oversampling of minority classes, or undersampling of dominant classes could be employed to ensure balanced representation during training. Furthermore, performance metrics beyond overall accuracy, such as the F1-score, precision-recall curves, and macro-averaged scores, will be considered to evaluate model performance more effectively across all classes.</p>
+</section>
+<section id="exploration-of-predictors" class="level2">
+<h2 class="anchored" data-anchor-id="exploration-of-predictors">Exploration of Predictors</h2>
+<section id="spectral-bands-and-ndvi" class="level3">
+<h3 class="anchored" data-anchor-id="spectral-bands-and-ndvi">Spectral Bands and NDVI:</h3>
+<p>Visualizing the spectral band and NDVI values across different land cover types reveals a potential relationship between the outcome and predictor. Below, a boxplot of NDVI across land cover classes illustrates this relationship:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/ndvi_boxplot.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The distribution of NDVI values across land cover classes reveals both distinct patterns and notable overlaps that highlight the complexities of land cover classification. As shown in the boxplot visualization, classes such as “Trees” exhibit consistently higher NDVI values (though, with a relatively wide range), indicative of dense vegetation and strong photosynthetic activity. This aligns with ecological expectations, as tree canopies reflect substantial near-infrared light and absorb red light, resulting in high NDVI values. Conversely, classes like “Water” show consistently negative NDVI values, reflecting the spectral signature of water, which absorbs near-infrared light and reflects visible wavelengths.</p>
+<p>However, certain classes, such as “Grass/Forb/Herb” and “Impervious,” demonstrate significant overlap in their NDVI distributions. This overlap may stem from seasonal variations in vegetation density or the heterogeneity of impervious surfaces, which can include both bare soil and constructed materials. Similarly, “Shrubs” and “Barren” exhibit NDVI ranges that overlap with both vegetative and non-vegetative classes, likely due to transitional or mixed land cover types.</p>
+<p>This overlap underscores the need for advanced classification models that can handle complex, potentially <em>non</em>-linear relationships between predictors and outcomes. Random Forests and other ensemble methods, which are well-suited to datasets with overlapping class boundaries, are particularly promising. Additionally, incorporating supplementary predictors, such as spectral bands (e.g., B1-B7), temporal features (e.g., month and year), and spatial aggregates (e.g., mean NDVI of neighboring pixels), may further improve model performance by providing additional context for distinguishing between classes.</p>
+<p>The variability within classes, as depicted by the interquartile ranges and outliers, also suggests the presence of heterogeneity within each land cover type. For example, the broader NDVI range for “Trees” may reflect differences in vegetation density, health, or canopy structure across regions. Similarly, the variability in “Grass/Forb/Herb” could be attributed to seasonal growth cycles or mixed vegetation types.</p>
+<p>Ultimately, while NDVI provides meaningful separability for certain land cover classes, its limitations in distinguishing overlapping classes highlight the importance of <em>multi</em>-predictor models. This analysis justifies the use of advanced classifiers that integrate additional spectral, temporal, and spatial features to address the inherent complexity of land cover classification.</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/spectral_bands_boxplot.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Similarly, these boxplots faceted by spectral bands across land cover classes reveal key patterns that inform the potential predictors’ utility for classification. For Bands 1, 2, and 3, which correspond to the visible blue, green, and red portions of the spectrum, the distribution of values remains relatively constant across the bands. This limited variability suggests strong collinearity among these bands—suggesting the need for dimensionality reduction techniques, such as Principal Component Analysis (PCA), to consolidate their information into fewer predictors without sacrificing interpretability.</p>
+<p>For Bands 5 and 7, which capture reflectance in the shortwave infrared (SWIR) region, the distributions show a similar pattern of consistency across bands, though with slightly more variability compared to the visible bands. These bands are known to be sensitive to moisture content and soil properties, which may provide complementary information to indices like NDVI. However, the moderate to strong inter-correlation observed between these bands also highlights the potential redundancy in their spectral information. As a result, selecting the most informative band or combining them into derived indices may enhance the model.</p>
+<p>No single band provides clear separability between all land cover classes, as evidenced by the substantial overlap in their distributions. For example, vegetative classes such as “Shrubs,” “Grass/Forb/Herb,” and “Trees” share overlapping ranges across multiple bands, reflecting the shared spectral characteristics of these land cover types. This overlap suggests that relying on any <em>single</em> spectral band as a predictor is insufficient for robust land cover classification.</p>
+</section>
+<section id="temporal-features" class="level3">
+<h3 class="anchored" data-anchor-id="temporal-features">Temporal Features:</h3>
+<p>The dataset includes monthly and yearly observations, enabling an analysis of seasonal oscillations and inter-annual trends. Below, we visualize temporal variations using time-series plots:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/ndvi_seasonal.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The visualization of seasonal NDVI trends across land cover classes reveals distinct temporal patterns that align with ecological expectations. As shown in the time-series plot, land cover types such as “Trees”, “Grass/Forb/Herb”, and “Shrubs” exhibit clear seasonal peaks during the summer months (June to August), corresponding to periods of maximum photosynthetic activity and vegetation growth. The NDVI for these classes declines during the winter months (October to February), reflecting the dormancy or reduced vegetation cover typical of temperate climates.</p>
+<p>“Snow/Ice”, on the other hand, shows a very prominent decline in NDVI in the late-Winter and Spring months (February to June), likely due to the melting of snow and ice, which reduces the reflectance in near-infrared bands. Conversely, “Water” maintains relatively stable NDVI values throughout the year, consistent with its spectral signature that is less influenced by seasonal changes. Classes like “Barren” and, albeit to a limited extent, “Impervious” also show minimal seasonal variation, as these land cover types are largely non-vegetative and therefore less responsive to seasonal shifts.</p>
+<p>The overlap in seasonal NDVI patterns for certain classes (such as “Grass/Forb/Herb”, “Impervious”, and “Shrubs”) underscores the importance of incorporating temporal features into the classification framework. These temporal dynamics can be modeled using sinusoidal functions, where NDVI is represented as a combination of sine and cosine terms to capture periodic oscillations. For example: <span class="math inline">\(\text{NDVI}(t) = A \cdot sin(2\pi \cdot f \cdot t + \phi) + B \cdot cos(2\pi \cdot f \cdot t + \phi)\)</span>, where <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> are the amplitudes, <span class="math inline">\(f\)</span> is the frequency (e.g., one cycle per year), <span class="math inline">\(t\)</span> is time (month or a numerical mapping of season), and <span class="math inline">\(\phi\)</span> is the phase shift. These derived features, such as amplitude and phase, can serve as additional predictors in classification models.</p>
+<p>The seasonal trends also highlight the need for models that account for temporal dependencies. Incorporating features like month or Fourier-derived seasonal components into machine learning classifiers can improve their ability to distinguish between classes with overlapping NDVI ranges. For example, while “Grass/Forb/Herb” and “Shrubs” may have similar NDVI distributions at specific times of the year, their seasonal trajectories clearly differ, providing an additional dimension for separation.</p>
+<p>Overall, the observed periodic patterns in NDVI justify the inclusion of temporal features in the modeling framework. These features not only enhance the interpretability of the models but also provide a biologically meaningful basis for improving classification accuracy.</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/spectral_bands_seasonal.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We extend this analysis to the spectral bands. The seasonal trends in spectral bands across land cover classes reveal similar periodicity, particularly in the “Snow/Ice” class, which exhibits distinct seasonal variations across all bands. This behavior is most pronounced in bands 1, 2, and 3 (visible spectrum), where reflectance values peak in the Spring, likely due to snow and ice melt influencing surface properties. The similarity in trends across these bands reinforces their shared sensitivity to visible light, suggesting they capture <em>redundant</em> information.</p>
+<p>Shortwave infrared bands 5 and 7 display more nuanced seasonal trends, particularly for “Trees” and “Barren.” These classes show clear increases in reflectance during summer, for “Trees” aligning with the seasonal growth of vegetation and moisture-related changes that SWIR bands are sensitive to. Notably, the “Impervious” class remains relatively stable across all seasons in these bands, reflecting the consistency of its surface properties. The overall variability in Band 4 is less pronounced compared to Bands 5 and 7, which suggests SWIR bands may provide additional discriminative power for land cover classes with more prominent moisture or structural changes.</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/ndvi_yearly.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/spectral_bands_yearly.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The analysis of yearly NDVI trends provides valuable insights into the stability and variability of vegetation dynamics across different land cover classes from 2000 to 2021 (the time range we focus on). The “Trees” class demonstrates consistently high NDVI values throughout the period, with a slight upward trend in recent years. This stability reflects the resilience of forested areas within the dataset and suggests minimal deforestation or even reforestation in some regions. Similarly, the “Grass/Forb/Herb” and “Shrubs” classes exhibit relatively stable NDVI values with limited inter-annual variability, indicative of consistent vegetation cover. These trends highlight the long-term stability of these vegetative land cover types, which is critical for assessing ecosystem health and predicting land cover changes.</p>
+<p>In contrast, the “Snow/Ice” class exhibits considerable variability in NDVI, particularly between 2002 and 2005. This fluctuation may be attributable to climatic factors such as variations in snow and ice coverage due to changing weather patterns or broader impacts of global warming. The unstable NDVI trend observed for this class aligns with the hypothesis of reduced snow and ice cover over time, signaling potential shifts in cryospheric dynamics that merit further investigation. Non-vegetative class “Barren” maintains consistently low NDVI values, reflecting their lack of vegetation and spectral characteristics. This stability over time indicates minimal changes in land use or surface conditions in areas dominated by barren land. The “Water” class similarly shows stable negative NDVI values near zero, confirming its spectral separability and consistency over the study period. Concerning is the nearly identical trends among “Impervious” and “Grass/Forb/Herb” which suggest distinguishing these classes will prove difficult.</p>
+<p>The observed trends suggest that temporal features, such as year, may provide <em>limited</em> additional predictive power for classes like “Impervious” and “Grass/Forb/Herb,” given their relative stability. However, for classes like “Snow/Ice,” where inter-annual variability is more pronounced, temporal features may enhance the model’s ability to capture dynamic changes. Overall, this analysis underscores the potential of temporal trends in NDVI to provide meaningful insights into land cover changes while emphasizing the need for tailored modeling approaches that account for the <em>unique</em> characteristics of each land cover class.</p>
+<p>The analysis of yearly spectral band trends aligns closely with the NDVI observations, particularly in the clear separability of the “Snow/Ice” and “Water” classes. “Snow/Ice” demonstrates pronounced periodicity across visible bands (B1, B2, B3), with reflectance peaks likely driven by seasonal variations in snow cover. The Water class, in contrast, maintains consistently low reflectance values across all bands, highlighting its distinct spectral signature.</p>
+<p>For the remaining land cover classes, visible bands (B1, B2, B3) show limited variability, reaffirming their redundancy in distinguishing between vegetative and non-vegetative classes. However, Bands 5 (SWIR1) and 7 (SWIR2) provide more nuanced differences, particularly for classes like “Trees” and “Barren,” where seasonal and inter-annual changes are more evident.</p>
+</section>
+</section>
+<section id="exploration-of-spatial-patterns" class="level2">
+<h2 class="anchored" data-anchor-id="exploration-of-spatial-patterns">Exploration of Spatial Patterns</h2>
+<section id="spatial-relationships" class="level3">
+<h3 class="anchored" data-anchor-id="spatial-relationships">Spatial Relationships:</h3>
+<p>The geographic proximity of pixels merits exploration of potential correlations between neighboring observations. A heatmap of NDVI values can highlight spatial continuity:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/ndvi_spatial.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/spectral_bands_spatial.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The visualization of NDVI and spectral band values across the United States highlights the spatial continuity of the predictors, where adjacent pixels exhibit similar values due to shared environmental and land cover characteristics.</p>
+<p>High NDVI values, indicative of dense vegetation and robust photosynthetic activity, are concentrated in the eastern U.S. and parts of the Pacific Northwest which are regions characterized by forested landscapes and favorable climatic conditions that support high vegetation density.</p>
+<p>In contrast, areas with low NDVI values are predominantly located in the arid western and southwestern United States. These regions, dominated by deserts, sparse vegetation, and barren land, naturally exhibit reduced photosynthetic activity. The stability and clustering of NDVI in these regions emphasize the potential for spatial correlations to enhance predictive modeling. For example, neighboring pixels are likely to belong to the same land cover class, providing an opportunity to use spatial aggregates such as the mean or variance of NDVI values within a defined neighborhood as additional predictors in classification models.</p>
+<p>Furthermore, the spatial clustering observed in the map suggests the importance of incorporating spatial relationships into the modeling framework. By considering the influence of nearby pixels, the model may better capture the continuity and heterogeneity inherent in natural landscapes. For instance, spatial smoothing or feature engineering techniques that aggregate NDVI values across a local neighborhood can provide additional context for distinguishing between land cover types with similar spectral signatures.</p>
+<p>This supports the hypothesis that spatial dependencies play a critical role in determining NDVI variability and, by extension, land cover classification.</p>
+</section>
+</section>
+<section id="preliminary-correlation-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="preliminary-correlation-analysis">Preliminary Correlation Analysis</h2>
+<p>A correlation matrix of predictors (e.g., spectral bands and NDVI) helps identify multicollinearity, which may impact model selection:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/correlation_matrix.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The correlation matrix provides insights into the relationships among the continuous variables, highlighting both redundancies and potential predictors for land cover classification.</p>
+<p>While NDVI exhibits weak to moderate negative correlations with several spectral bands, these relationships highlight the inherent complexity of vegetation dynamics and the limitations of <em>linear</em> correlation measures. Specifically, NDVI demonstrates weak negative correlations with the near-infrared band <code>SR_B4</code> (-0.21) and the shortwave infrared band <code>SR_B5</code> (-0.26), aligning with the fact that NDVI is a <em>non</em>-linear function of red and near-infrared reflectance. The weak linear correlation underscores that the predictive power of these bands may lie not in their independent contributions but in their interactions, which may be more effectively captured through non-linear models.</p>
+<p>The visible bands <code>SR_B1</code>, <code>SR_B2</code>, and <code>SR_B3</code> exhibit near-perfect collinearity, with correlation coefficients exceeding 0.94. This strong interdependence indicates that these bands measure nearly identical surface properties in the visible spectrum, such as reflectance from bare soil, water, and vegetation—aligning with previously identified redundancies across the predictor categories. While these bands are critical for understanding vegetation absorption and reflection in the blue, green, and red ranges, their redundancy poses a risk of multicollinearity in predictive models. Without dimensionality reduction, their inclusion as independent predictors may lead to instability and overfitting.</p>
+<p>Beyond the visible spectrum, the infrared bands <code>SR_B4</code>, <code>SR_B5</code>, and <code>SR_B7</code> show moderate to strong inter-correlations, with values above 0.6 in some cases. These bands capture distinct but related properties, including vegetation structure, moisture content, and thermal properties. While their interdependence is not <em>as</em> pronounced as the visible bands, it suggests complementary information that could enhance classification models when used judiciously. In contrast, spatial variables such as latitude and longitude display negligible correlations with NDVI and other spectral predictors, indicating that geographic location alone may not strongly predict vegetation health. Elevation, similarly, shows weak correlations across all variables, suggesting it may have a limited direct impact on spectral properties in this dataset. However, spatial variables could still prove valuable in capturing non-linear regional trends or serving as inputs for spatial-temporal models.</p>
+<p>The observed correlations provide critical guidance for feature engineering and model selection. The weak correlations between NDVI and individual spectral bands further reinforce the need to explore non-linear models, such as Random Forests, that can capture complex interactions. At the same time, the high collinearity among certain bands necessitates dimensionality reduction to mitigate redundancy and improve computational efficiency. Incorporating indices such as NDVI or enhanced vegetation indices may allow for a more nuanced representation of vegetation health, leveraging the interplay of spectral bands more effectively. While spatial and elevation variables appear weakly correlated with NDVI, they may still play an important role in explaining regional variations when combined with other predictors.</p>
+</section>
+<section id="section-conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="section-conclusion">Section Conclusion</h2>
+<p>This exploratory analysis establishes the relationships between predictors and the outcome variable, supports the inclusion of temporal and spatial features, and provides insight into approaches for model selection. The next section will focus on modeling approaches, detailing the assumptions, methodology, and evaluation metrics used to predict land cover classes.</p>
+<div style="page-break-after: always;"></div>
+</section>
+</section>
+<section id="modelinganalysis" class="level1">
+<h1>Modeling and Analysis</h1>
+<p>The objective of this section is to formalize and implement predictive models to classify land cover types using the predictors identified in the data exploration phase. The models we employ must address key challenges, including the complexity of spectral, temporal, and spatial relationships, overlapping class boundaries, and collinearity among predictors. This section details the regression and classification models tested, their assumptions, implementation, and evaluation.</p>
+<section id="problem-setup" class="level2">
+<h2 class="anchored" data-anchor-id="problem-setup">Problem Setup</h2>
+<p>The task involves predicting the dominant land cover class (<code>dominant_landcover</code>), a categorical variable with multiple classes, using a set of continuous and categorical predictors. Specifically:</p>
+<ul>
+<li><p>Observation (<span class="math inline">\(X\)</span>): Each row corresponds to a unique satellite-derived observation at a specific time (<code>year</code>, <code>month</code>) and geographic location (<code>lat</code>, <code>lon</code>).</p></li>
+<li><p>Predictors (columns of <span class="math inline">\(X\)</span>): Continuous predictors include spectral bands (<code>SR_B1</code>, <code>SR_B2</code>, … <code>SR_B7</code>), <code>NDVI</code>, elevation (<code>elevation_meters</code>), and spatial-temporal variables like <code>month</code>, <code>year</code>, and <code>season</code>. Derived sinusoidal features (e.g., sine/cosine terms) will also be introduced during feature engineering.</p></li>
+<li><p>Outcome (<span class="math inline">\(y\)</span>): The target variable is <code>dominant_landcover</code>, representing land cover classes such as “Trees,” “Water,” “Snow/Ice,” etc.</p></li>
+</ul>
+</section>
+<section id="baseline-model-multinomial-logistic-regression" class="level2">
+<h2 class="anchored" data-anchor-id="baseline-model-multinomial-logistic-regression">Baseline Model: Multinomial Logistic Regression</h2>
+<section id="assumptions" class="level3">
+<h3 class="anchored" data-anchor-id="assumptions">Assumptions:</h3>
+<p>The multinomial logistic regression model assumes a <em>linear</em> relationship between the predictors and the log-odds of class membership. While this assumption simplifies interpretation, it imposes constraints that may not align with the inherent complexity of the land cover classification problem. Specifically, land cover classes often exhibit non-linear relationships, overlapping boundaries, and significant multicollinearity among predictors (e.g., spectral bands), which may reduce the model’s ability to generalize effectively. To mitigate multicollinearity, Principal Component Analysis (PCA) was employed to transform the highly correlated spectral bands into orthogonal components, thereby preserving the majority of variance while reducing redundancy and computational complexity.</p>
+</section>
+<section id="model-specification" class="level3">
+<h3 class="anchored" data-anchor-id="model-specification">Model Specification:</h3>
+<p>The multinomial logistic regression model predicts the probability of a pixel <span class="math inline">\(y\)</span> belonging to a given land cover class <span class="math inline">\(C\)</span>, where <span class="math inline">\(c \in [1, K]\)</span>, as follows:</p>
+<p><span class="math display">\[
+P(y=c | X) = \frac{\exp(\beta_{c_0} + \beta^\top_{c}X)}{\sum_{k=1}^{K} \exp(\beta_{k_0} + \beta^\top_{k}X)}
+\]</span></p>
+<p>where <span class="math inline">\(X\)</span> represents the predictors (spectral bands, NDVI, temporal features), <span class="math inline">\(\beta_c\)</span> is the vector of coefficients for class <span class="math inline">\(c\)</span>, and <span class="math inline">\(\beta_{c_0}\)</span> is the intercept for class <span class="math inline">\(c\)</span>.</p>
+<p>The model estimates <span class="math inline">\(\beta\)</span> using maximum likelihood estimation to minimize the discrepancy between the predicted and observed probabilities.</p>
+</section>
+<section id="implementation" class="level3">
+<h3 class="anchored" data-anchor-id="implementation">Implementation:</h3>
+<p>The predictors used in the model include spectral bands (<code>SR_B1</code> to <code>SR_B7</code>), <code>NDVI</code>, temporal features (<code>season</code>), elevation, vegetation indicators, and spatial features (<code>EastWest</code> and <code>NorthSouth</code>). However, due to the strong collinearity observed among the spectral bands (e.g., <code>SR_B1</code>, <code>SR_B2</code>, and <code>SR_B3</code>), dimensionality reduction is applied using PCA. PCA transforms the original spectral band features into orthogonal components, retaining the majority of the variance in the data while reducing redundancy and computational complexity.</p>
+<section id="principal-component-analysis-pca" class="level4">
+<h4 class="anchored" data-anchor-id="principal-component-analysis-pca">Principal Component Analysis (PCA)</h4>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="report_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The scree plot of explained variance demonstrates that the first principal component (PC1) accounts for approximately 75% of the variance, while the second principal component (PC2) explains an additional 15%—together explaining over 90% of the total variance. Beyond PC2, the contribution of additional components (PC3 to PC6) is minimal, collectively explaining less than 10% of the variance, indicating that their inclusion offers limited additional information.</p>
+<p>Given this pattern, we retain only PC1 and PC2 for downstream modeling, as they account for the vast majority of the variance in the spectral bands while significantly reducing dimensionality. Selecting only PC1 and PC2 simplifies the model and improves computational efficiency while maintaining the interpretability of the dominant trends in the spectral bands.</p>
+<p>We proceed to fit the multinomial logistic regression model using <code>PC1</code>, <code>PC2</code>, <code>NDVI</code>, <code>season</code>, <code>elevation_meters</code>, <code>veg</code>, <code>east_west</code>, and <code>north_south</code> as predictors. We standardize the continuous predictors to have mean 0, standard deviation 1 to ensure that coefficients are on the same scale and interpretability is consistent across features.</p>
+</section>
+</section>
+<section id="performance-evaluation" class="level3">
+<h3 class="anchored" data-anchor-id="performance-evaluation">Performance Evaluation:</h3>
+<p>Model performance is evaluated using accuracy, precision, recall, and F1-score.</p>
+<p><span class="math display">\[
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Class} &amp; \textbf{Precision} &amp; \textbf{Recall} &amp; \textbf{F1} &amp; \textbf{Balanced Accuracy} \\ \hline
+\text{Barren} &amp; 0.8534 &amp; 0.9158 &amp; 0.8835 &amp; 0.9544 \\ \hline
+\text{Grass/Forb/Herb} &amp; 0.6403 &amp; 0.7816 &amp; 0.7039 &amp; 0.7091 \\ \hline
+\text{Impervious} &amp; 0.4747 &amp; 0.2310 &amp; 0.3108 &amp; 0.6140 \\ \hline
+\text{Shrubs} &amp; 0.0561 &amp; 0.0028 &amp; 0.0052 &amp; 0.4993 \\ \hline
+\text{Snow/Ice} &amp; 0.4375 &amp; 0.0308 &amp; 0.0576 &amp; 0.5154 \\ \hline
+\text{Trees} &amp; 0.6425 &amp; 0.5991 &amp; 0.6200 &amp; 0.7214 \\ \hline
+\text{Water} &amp; 0.9057 &amp; 0.9357 &amp; 0.9205 &amp; 0.9630 \\ \hline
+\textbf{Macro Averaged} &amp; \textbf{0.5729} &amp; \textbf{0.4995} &amp; \textbf{0.5002} &amp; \textbf{0.7109} \\ \hline
+\end{array}
+\]</span></p>
+<p>The performance metrics for the multinomial logistic regression model demonstrate both strengths and limitations, reflecting variability in the model’s ability to classify different land cover classes. The model performs well for dominant classes such as “Grass/Forb/Herb,” “Trees,” and “Water,” achieving F1-scores of 0.704, 0.620, and 0.920, respectively. Notably, “Water” stands out as the best-performing class, with exceptionally high precision (0.906) and recall (0.936). This strong performance is likely attributable to the distinct spectral signature of water, which facilitates accurate classification. Similarly, the relatively high recall (0.782) and precision (0.640) for “Grass/Forb/Herb” indicate the model’s capability to capture prevalent vegetative classes.</p>
+<p>In contrast, the model struggles significantly with minority and spectrally overlapping classes. For instance, the “Shrubs” class exhibits an F1-score of only 0.005, driven by extremely low recall (0.003) and precision (0.056). Likewise, the “Snow/Ice” class achieves an F1-score of 0.058, with a recall of 0.031, indicating that these classes are rarely identified correctly. These results highlight the challenges of classifying underrepresented categories, where insufficient training examples and overlapping spectral features hinder the model’s ability to generalize.</p>
+<p>The “Impervious” class also performs poorly, with a recall of 0.231 and an F1-score of 0.311. This suggests difficulty in distinguishing impervious surfaces from similar classes, like “Grass/Forb/Herb” which we previously observed shared similar predictor distributions. The relatively low precision for this class (0.475) further underscores the model’s inability to effectively separate it from other categories.</p>
+<p>Macro-averaged metrics, including an F1-score of 0.500 and balanced accuracy of 0.711, provide an overall assessment of model performance. While the balanced accuracy indicates moderate effectiveness across all classes, the macro-averaged F1-score reflects the challenges posed by poor performance on minority classes. The disparity between these metrics suggests that while the model is effective for majority and spectrally distinct classes, it fails to adequately address class imbalance and overlapping class distributions.</p>
+<p>These results highlight the model’s strengths in classifying dominant, spectrally distinct classes and its weaknesses in handling overlapping class distributions and underrepresented categories.</p>
+</section>
+<section id="interpretation" class="level3">
+<h3 class="anchored" data-anchor-id="interpretation">Interpretation:</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="sims/multinom_model_coeffs_heatmap.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The heatmap of coefficients provides an empirical representation of the multinomial logistic regression model, offering insights into how each predictor influences the relative log-odds of classification into a specific land cover class. Each cell represents the coefficient for a predictor-class pair, where positive values indicate an increase in the log-odds of a pixel belonging to that class, while negative values denote a decrease relative to the reference category. Notably, the Vegetation Indicator (<code>Veg:1</code>) exhibits the largest positive coefficients across vegetated classes such as “Trees,” “Shrubs,” and “Grass/Forb/Herb”, compared to the non-vegetated reference category (<code>Veg:0</code>). This result aligns with observations from the data exploration phase, where vegetated classes consistently demonstrated high NDVI values and distinct spectral patterns indicative of healthy vegetation. Conversely, non-vegetated classes, including “Water,” “Snow/Ice,” and “Impervious,” display negligible or negative coefficients for <code>Veg:1</code>, reflecting their spectral dissimilarity from vegetated surfaces.</p>
+<p>The intercept terms, particularly for “Grass/Forb/Herb” and “Trees,” are non-negligible and negative, suggesting higher baseline probabilities for these majority classes when all predictors are at their reference values. This observation reinforces the class distribution imbalance observed during the outcome exploration, where these vegetated classes accounted for over 75% of all observations.</p>
+<p>The spatial predictors, <code>EastWest</code> and <code>NorthSouth</code>, reveal distinct trends. <code>EastWest:West</code> shows the largest negative coefficients for “Water” and “Trees”, indicating a reduced likelihood of these classes occurring in the western regions. Conversely, “Grass/Forb/Herb” and “Shrubs” display smaller negative coefficients, suggesting a more balanced east-west distribution for these classes. This trend aligns with geographic observations, where dense vegetation (trees) and water bodies are more prominent in the eastern United States. <code>NorthSouth:South</code>, on the other hand, exhibits negligible coefficients across most classes, with a modest negative value for “Snow/Ice”. This pattern is consistent with the climatological expectation that snow and ice are less likely to appear in southern regions closer to the equator, where temperatures are higher.</p>
+<p>The <code>NDVI</code> coefficients highlight varying relevance across land cover types. <code>NDVI</code> is slightly positive for “Impervious” surfaces, likely reflecting bare soil or sparse vegetation associated with impervious areas. In contrast, <code>NDVI</code> is negative (albeit, minimally) for “Water” and “Shrubs”, consistent with their low or intermediate vegetation density, which was observed in the <code>NDVI</code> boxplots during data exploration. The negative relationship for “Water” reflects its distinct spectral signature, as water absorbs near-infrared light, resulting in consistently low NDVI values.</p>
+<p>The principal components (<code>PC1</code> and <code>PC2</code>) derived from spectral bands demonstrate subtle yet interpretable patterns. <code>PC1</code> exhibits negligible coefficients across most classes, except for small negative values for “Shrubs” and “Water”. This result suggests that <code>PC1</code> primarily captures spectral variations that do not contribute meaningfully to class separability. In contrast, PC2 displays small but positive coefficients across multiple classes, most prominently for “Trees” and “Snow/Ice”. This positive relationship may reflect spectral nuances captured in <code>PC2</code> that are more aligned with vegetated and cryospheric surfaces. Notably, “Impervious” surfaces show near-zero coefficients for <code>PC2</code>, suggesting minimal spectral distinction along this principal component axis.</p>
+<p>The seasonal predictors (<code>Season:C</code>, <code>Season:L</code>, <code>Season:Q</code>) exhibit small but meaningful coefficients that align with their polynomial contrasts, given the ordered nature of the seasons. In multinomial regression, ordered factors are modeled using orthogonal polynomials to capture linear, quadratic, and cubic trends. <code>Season.C</code> (linear trend) is slightly negative for “Snow/Ice”, reflecting a steady seasonal decline as winter transitions into warmer seasons. <code>Season.L</code> (quadratic trend) and <code>Season.Q</code> (cubic trend) coefficients are most noticeable and positive for “Snow/Ice”, indicating that the relationship between seasonality and snow cover is non-linear. This aligns with the earlier seasonal NDVI analysis, which revealed pronounced temporal peaks and troughs for “Snow/Ice”. For other classes, the seasonal predictors have minimal influence, reinforcing the earlier observation that the linear separability of temporal trends is limited.</p>
+<p>The heatmap confirms and extends findings from the data exploration phase. The spatial predictors align with expected geographic distributions, particularly for “Water,” “Trees,” and “Snow/Ice”. <code>NDVI</code> and principal components reveal varying relevance, with <code>NDVI</code> strongly differentiating “Water” and “Impervious” surfaces, while <code>PC2</code> captures subtle spectral distinctions for “Trees” and “Snow/Ice”. Seasonal predictors highlight the importance of non-linear trends, particularly for “Snow/Ice”.</p>
+</section>
+<section id="appropriateness" class="level3">
+<h3 class="anchored" data-anchor-id="appropriateness">Appropriateness:</h3>
+<p>The multinomial logistic regression model serves as a simple and interpretable baseline for land cover classification. Its linear assumptions make it <em>less suitable</em> for the inherent non-linear relationships and overlapping boundaries observed in the data, particularly among spectrally similar classes such as “Shrubs” and “Grass/Forb/Herb.” While PCA mitigated multicollinearity among spectral bands by reducing dimensionality, it abstracts raw spectral information, potentially limiting fine-grained class separability. Moreover, the model’s performance is heavily influenced by class imbalance, as evidenced by strong results for majority classes like “Water” and “Trees” but poor performance for underrepresented classes such as “Shrubs” and “Snow/Ice.” Thus, we may need a more flexible, non-linear models to handle the data’s complexity.</p>
+<p>Nevertheless, a key strength of the multinomial logistic regression model is its interpretability. Coefficients provide clear insights into predictor effects: positive values increase the log-odds of class membership, while negative values decrease it. For instance, the Vegetation Indicator (<code>Veg:1</code>) strongly differentiates vegetated classes (“Trees,” “Grass/Forb/Herb”) from non-vegetated ones, aligning with NDVI trends observed during data exploration. Spatial predictors (<code>EastWest</code> and <code>NorthSouth</code>) capture meaningful geographic patterns, such as the higher prevalence of “Water” and “Trees” in eastern regions.</p>
+<p>NDVI coefficients confirm its ecological relevance, with negative values for “Water” and slight positives for “Impervious,” consistent with their spectral signatures. Principal components (<code>PC1</code>, <code>PC2</code>) show subtle yet interpretable contributions, with <code>PC2</code> capturing spectral variations for “Trees” and “Snow/Ice.” Seasonal predictors, modeled through polynomial contrasts, reveal non-linear temporal patterns, notably for “Snow/Ice,” which peaks in winter and declines thereafter.</p>
+<p>While the results are interpretable and align with prior observations, the model’s linear constraints and limited handling of class imbalance reduce its effectiveness for minority and complex classes.</p>
+</section>
+</section>
+<section id="temporal-model-sinusoidal-multinomial-logistic-regression" class="level2">
+<h2 class="anchored" data-anchor-id="temporal-model-sinusoidal-multinomial-logistic-regression">Temporal Model: Sinusoidal Multinomial Logistic Regression</h2>
+<p>Periodicity observed in <code>NDVI</code> and spectral bands indicates that temporal dynamics are not adequately captured by standard linear models. To address this, sinusoidal regression introduces sine and cosine components to model periodic oscillations, which align with seasonal trends and provide a continuous representation of time-varying effects.</p>
+<section id="model-specification-1" class="level3">
+<h3 class="anchored" data-anchor-id="model-specification-1">Model Specification:</h3>
+<p>Sinusoidal regression expresses temporal patterns as a combination of sine and cosine functions, mathematically represented as:</p>
+<p><span class="math display">\[
+f(t) = A \cdot \sin(2 \pi f t + \phi) + B \cdot \cos(2 \pi ft + \phi)
+\]</span></p>
+<p>Here:</p>
+<ul>
+<li><span class="math inline">\(t\)</span> represents the temporal variable (e.g., the numeric representation of <code>season</code> or <code>month</code>)</li>
+<li><span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> are the amplitude coefficients, which are estimated during model training. These coefficients determine the magnitude of the oscillation and capture the contribution of the sine and cosine terms to the overall periodic pattern.</li>
+<li><span class="math inline">\(f\)</span> denotes the frequency of the oscillation, which corresponds to the natural periodicity of the phenomenon under study. For seasonal data divided into four quarters (Winter, Spring, Summer, Fall), <span class="math inline">\(f = \frac{1}{4}\)</span>, indicating one full cycle per year.</li>
+<li><span class="math inline">\(\phi\)</span> represents the phase shift, accounting for the starting point of the oscillation. Since the data aligns naturally with the seasons (e.g., starts in the Winter), we assume <span class="math inline">\(\phi\)</span> to be 0 to simplify the model.</li>
+</ul>
+<p>Thus, we extend the multinomial logistic regression model by incorporating sine and cosine transformations of the seasonal variable:</p>
+<p><span class="math display">\[
+P(y=c | X, t) =
+\frac{
+\exp(\beta_{c_0} + \beta^\top_{c}X + \alpha_c \sin(2\pi ft) + \gamma_c \cos(2\pi ft))
+}
+{
+\sum_{k=1}^{K} \exp(\beta_{k_0} + \beta^\top_{k}X + \alpha_k \sin(2\pi ft) + \gamma_k \cos(2\pi ft))
+},
+\]</span></p>
+<p>where <span class="math inline">\(\alpha_c\)</span> and <span class="math inline">\(\gamma_c\)</span> represent the class-specific coefficients for the sine and cosine terms, respectively—quantifying how temporal periodicity influences the log-odds of classification into each land cover class.</p>
+</section>
+<section id="implementation-1" class="level3">
+<h3 class="anchored" data-anchor-id="implementation-1">Implementation:</h3>
+<section id="fourier-transformation" class="level4">
+<h4 class="anchored" data-anchor-id="fourier-transformation">Fourier Transformation</h4>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="report_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>To account for this clear periodicity in <code>NDVI</code>, we performed a Fourier Transformation to identify the dominant frequency driving temporal oscillations. This step was motivated by the strong seasonal trends observed in the data, where <code>NDVI</code> peaks during the summer months and declines in winter, reflecting vegetation growth cycles. The Fourier Transformation decomposes the <code>NDVI</code> time series into its constituent frequencies, allowing us to quantify periodic patterns and determine the most significant frequency contributing to the observed variations.</p>
+<p>The results of the Fourier Transformation analysis indicate that the dominant frequency corresponds to <span class="math inline">\(f=\frac{1}{12}\)</span>, representing a single annual cycle among the <code>month</code> predictor. This frequency accounts for the majority of the variance in <code>NDVI</code>, while higher-order frequencies have negligible contributions. This finding confirms that <code>NDVI</code> follows a regular, annual oscillatory pattern, which aligns with ecological expectations of seasonal vegetation changes.</p>
+<p>To incorporate this seasonality into the multinomial regression model, we transformed the <code>month</code> variable (which is much more granular than <code>season</code>) into two sinusoidal features: <span class="math inline">\(\sin(2\pi \cdot f \cdot \text{month})\)</span> and <span class="math inline">\(\cos(2\pi \cdot f \cdot \text{month})\)</span>. These sine and cosine terms capture the periodic nature of <code>NDVI</code> across months, providing a smooth representation of temporal trends. By including these derived features as predictors, the model may gain the ability to account for seasonal variations in a flexible yet interpretable manner, enhancing its capacity to distinguish between land cover classes with strong temporal signals, such as “Grass/Forb/Herb” and “Snow/Ice.”</p>
+</section>
+</section>
+<section id="performance-evaluation-and-interpretation" class="level3">
+<h3 class="anchored" data-anchor-id="performance-evaluation-and-interpretation">Performance Evaluation and Interpretation:</h3>
+<p>As done previously, model performance is evaluated using accuracy, precision, recall, and F1-score. Given the substantially similar performance and coefficients, we extend our previous discussion of the multinomial logistic regression model and focus more on the utility of the Fourier-transformed <code>month</code> variable.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="sims/tmprl_multinom_model_coeffs_heatmap.png" class="img-fluid figure-img" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><span class="math display">\[
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Class} &amp; \textbf{Precision} &amp; \textbf{Recall} &amp; \textbf{F1} &amp; \textbf{Balanced Accuracy} \\ \hline
+\text{Barren} &amp; 0.8541 &amp; 0.9160 &amp; 0.8839 &amp; 0.9545 \\ \hline
+\text{Grass/Forb/Herb} &amp; 0.6403 &amp; 0.7789 &amp; 0.7029 &amp; 0.7085 \\ \hline
+\text{Impervious} &amp; 0.4729 &amp; 0.2320 &amp; 0.3112 &amp; 0.6144 \\ \hline
+\text{Shrubs} &amp; 0.0555 &amp; 0.0027 &amp; 0.0052 &amp; 0.4993 \\ \hline
+\text{Snow/Ice} &amp; 0.4706 &amp; 0.0352 &amp; 0.0656 &amp; 0.5176 \\ \hline
+\text{Trees} &amp; 0.6396 &amp; 0.6003 &amp; 0.6193 &amp; 0.7208 \\ \hline
+\text{Water} &amp; 0.9059 &amp; 0.9357 &amp; 0.9206 &amp; 0.9630 \\ \hline
+\textbf{Macro Averaged} &amp; \textbf{0.5770} &amp; \textbf{0.5001} &amp; \textbf{0.5012} &amp; \textbf{0.7112} \\ \hline
+\end{array}
+\]</span></p>
+<p>Incorporating sinusoidal transformations of the month variable, represented as sine and cosine terms, aimed to address the observed periodicity in the temporal predictors, particularly the cyclical pattern of NDVI over the calendar year. These periodic components, theoretically, enable the model to account for annual and seasonal temporal cycles, e.g., vegetation growth peaking during summer and snow cover during winter. Mathematically, the sine and cosine features capture temporal effects in a continuous manner <em>without</em> relying on categorical representations, thus aligning more closely with periodic phenomena in the data.</p>
+<p>Performance evaluation of the sinusoidal multinomial regression model, however, reveals negligible improvements over the baseline multinomial logistic regression. Class-specific metrics such as precision, recall, and F1-score exhibit minimal or no meaningful gains, as demonstrated by the macro-averaged F1-score (0.5012) and balanced accuracy (0.7112), which remain nearly identical to the baseline results (0.5002 and 0.7109, respectively). Classes such as “Snow/Ice,” where stronger temporal signals were anticipated, show only marginal changes in predictive accuracy. While the sine term exhibits a weak negative coefficient for “Snow/Ice,” the cosine term remains near zero across all classes, indicating that these temporal features contribute minimally to class separation. This suggests that the seasonal patterns captured by the sinusoidal terms are insufficient to meaningfully enhance this model’s discriminatory power.</p>
+<p>From an interpretability standpoint, the inclusion of sinusoidal features complicates the model without adding substantial value. While the baseline model relied on simpler, more interpretable predictors, the sinusoidal terms introduce an additional layer of complexity. The resulting coefficients for <code>sin_month</code> and <code>cos_month</code> are not intuitive to interpret, especially for non-technical stakeholders. Moreover, the near-zero influence of these coefficients further diminishes their utility, as they fail to capture meaningful temporal variability beyond what was already modeled by existing predictors like <code>NDVI</code> and <code>season</code>.</p>
+<p>Thus, while the sinusoidal regression approach is—<em>theoretically</em>—well-suited for periodic data, its empirical performance in this case does not justify the added complexity. The marginal improvements in predictive metrics, coupled with reduced interpretability, suggest that simpler temporal representations such as categorical <code>season</code> remain sufficient for this dataset.</p>
+</section>
+</section>
+<section id="non-linear-models" class="level2">
+<h2 class="anchored" data-anchor-id="non-linear-models">Non-Linear Models</h2>
+<p>While multinomial logistic regression serves as a baseline model for land cover classification, its performance is limited by the linearity assumption and its inability to model complex feature interactions. Given the inherently non-linear relationships present in remote sensing data, such as interactions between spectral bands, elevation, and seasonal patterns, a more flexible modeling approach is required.</p>
+</section>
+<section id="cart-classification-and-regression-trees-algorithm" class="level2">
+<h2 class="anchored" data-anchor-id="cart-classification-and-regression-trees-algorithm">CART (Classification and Regression Trees) Algorithm</h2>
+<p>Classification and Regression Trees (CART) constitute a fundamental machine learning technique employed for both classification and regression tasks. With respect to land cover classification, CART offers a straightforward yet potent approach to model complex, non-linear relationships between predictors and the target variable. The inherent simplicity and interpretability of CART make it an attractive option for environmental datasets, which (like here) often encompass a diverse array of continuous and categorical variables.</p>
+<section id="assumptions-1" class="level3">
+<h3 class="anchored" data-anchor-id="assumptions-1">Assumptions:</h3>
+<p>CART models operate under minimal assumptions regarding the underlying data distribution, rendering them highly adaptable to various datasets. Specifically, CART does not presume any specific functional form for the relationship between predictors and the outcome variable. This flexibility allows CART to effectively capture non-linear interactions and relationships without necessitating extensive feature engineering. Additionally, CART exhibits robustness to outliers, as the tree-based structure can isolate anomalous data points, thereby mitigating their impact on the overall model performance.</p>
+</section>
+<section id="model-specification-2" class="level3">
+<h3 class="anchored" data-anchor-id="model-specification-2">Model Specification:</h3>
+<p>The CART algorithm constructs a decision tree by recursively partitioning the feature space to predict the class of the target variable. The process involves selecting the predictor and corresponding threshold at each node that minimizes an impurity measure, such as the Gini Index or Entropy. The tree growth continues until predefined stopping criteria are met, which may include a minimum number of samples per leaf, maximum tree depth, or a minimal improvement in impurity. Upon completion, each terminal node (leaf) is assigned the most frequent class among the training observations that fall into that node.</p>
+<p>However, the utilization of a <em>single</em> decision tree in CART is susceptible to overfitting, particularly when the tree becomes excessively deep and begins to capture noise within the training data. To counteract this, pruning techniques are often employed to reduce tree complexity, thereby enhancing the model’s generalization capability by balancing bias and variance. Despite the potential for overfitting, the interpretability and computational efficiency of CART models remain significant advantages, as the decision rules are transparent and easily communicable to stakeholders.</p>
+</section>
+<section id="implementation-2" class="level3">
+<h3 class="anchored" data-anchor-id="implementation-2">Implementation:</h3>
+<section id="data-preparation" class="level4">
+<h4 class="anchored" data-anchor-id="data-preparation">Data Preparation</h4>
+<p>For this analysis, the dataset underwent meticulous preparation to ensure its suitability for CART modeling. Initially, observations were filtered to include only points within the United States, maintaining geographic consistency. Each observation was uniquely identified by <code>PlotID</code> to prevent duplication. Land cover classes (<code>dominant_landcover</code>) were encoded as categorical variables to facilitate classification tasks. Recognizing the inherent class imbalance within the dataset, particularly the underrepresentation of classes such as “Snow/Ice” and “Shrubs,” a stratified 70%-30% train-test split was employed. This stratification ensured that the training and testing subsets preserved the original class distribution, thereby providing a realistic evaluation of model performance.</p>
+<p>Class imbalance poses a significant challenge in classification tasks, as minority classes are often overshadowed by majority classes, leading to biased model predictions. To mitigate this issue within the CART framework, oversampling techniques such as the Synthetic Minority Over-sampling Technique (SMOTE) were considered to augment the number of minority class samples in the training set. Additionally, undersampling of majority classes was explored to achieve a more balanced class distribution. These strategies aimed to enhance the model’s ability to accurately classify underrepresented classes by providing them with sufficient representation during training.</p>
+<p>We visualize the dataset using the <a href="https://earthengine.google.com">Google Earth Engine</a> interface:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/actual_map.png" class="img-fluid figure-img"></p>
+<figcaption>Map of Visualized Data</figcaption>
+</figure>
+</div>
+<p>The CART model was trained on 70% of the dataset and tested on 30% of the dataset, using predictors: <code>NDVI</code>, <code>SR_B1</code>, <code>SR_B2</code>, <code>SR_B3</code>, <code>SR_B4</code>, <code>SR_B5</code>, <code>SR_B7</code>, <code>elevation_meters</code> (The full code is available here: <a href="https://code.earthengine.google.com/27be438d2822e76c39af6aece7d61aad">here</a>).</p>
+<p>For instance, for 2018, the data sizes were as follows:</p>
+<ul>
+<li><p>Total Observations: 24,411</p>
+<ul>
+<li><p>Training Set: 16,942 observations</p></li>
+<li><p>Testing Set: 7,469 observations</p></li>
+</ul></li>
+</ul>
+</section>
+</section>
+<section id="performance-evaluation-1" class="level3">
+<h3 class="anchored" data-anchor-id="performance-evaluation-1">Performance Evaluation</h3>
+<p>The performance of the CART model was evaluated using multiple metrics to provide a comprehensive assessment of its effectiveness in classifying land cover types. The metrics employed include Accuracy, Precision, Recall (Sensitivity), F1-Score, and the Kappa Coefficient (<span class="math inline">\(\kappa\)</span>). These metrics collectively offer insights into the model’s ability to correctly classify observations, the balance between precision and recall, and the agreement between predicted and observed classifications beyond chance.</p>
+<p>The modeled yielded an accuracy of 55.3% and a <span class="math inline">\(\kappa\)</span> coefficient of 0.304.</p>
+<p>The classifier incorrectly classified 3339 observations (44.7% of the testing set). There were 30 unique misclassification types. The 6 classes with the highest misclassification frequency:</p>
+<ol type="1">
+<li><p>“Trees” classified as “Grass/Forb/Herb” (805)</p></li>
+<li><p>“Grass/Forb/Herb” classified as “Trees” (745)</p></li>
+<li><p>“Trees” classified as “Shrubs” (382)</p></li>
+<li><p>“Shrubs” classified as “Trees” (322)</p></li>
+<li><p>“Trees” classified as “Barren” (192)</p></li>
+</ol>
+<p>“Barren” classified as “Trees” (153)</p>
+<p>These misclassifications were styled dynamically by type and visualized on the map to explore any geospatial groupings. We see that “Trees” and “Grass/Forb/Herb” are often misclassified as one another along the Northeast, but “Grass/Forb/Herb” is incorrectly classified as “Trees” in the Midwest. This shows that the model struggles to distinguish between these two classes in certain regions, but especially where “Grass/Forb/Herb” is prevalent.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/layeredmap.png" class="img-fluid figure-img"></p>
+<figcaption>Map of Top 6 Misclassifications Against Actual Values</figcaption>
+</figure>
+</div>
+<p>Given certain classes appeared to host disproportionate misclassifications (e.g., “Trees”), we explored misclassification rates, precision, and recall by class, shown in the table. First, misclassification rates were calculated as follows:</p>
+<p><span class="math display">\[
+\text{Misclassification Rate} = \frac{\text{Misclassified Points in Class}}{\text{Total Points in Class}}.
+\]</span></p>
+<p>While all classes have moderate to high misclassification rates, “Snow/Ice”, “Impervious”, “Shrubs,” and “Barren” had significantly larger rates than other classes. The dispersion between rates is likely due to class imbalance in the training data, as certain classes were highly underrepresented relative to others, like “Snow/Ice” (2 observations) vs.&nbsp;“Grass/forb/herb” (8,825 observations).</p>
+<p>Next, the two errors contributing to misclassification, predicting false positives and false negatives, were observed by calculating precision and recall. Precision by class measures the proportion of true positive predictions out of all positive predictions made by the model:</p>
+<p><span class="math display">\[
+\text{Precision} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}.
+\]</span></p>
+<p>Recall by class measures the proportion of true positive predictions out of all actual positive instances in the dataset:</p>
+<p><span class="math display">\[
+\text{Recall} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}.
+\]</span></p>
+<p>When precision is less than recall for a given class, it suggests the model is <em>over</em>predicting that class, resulting in many false positives. The table shows that “Water”, “Grass/Forb/Herb” and “Barren” are often incorrectly predicted for a certain point, which makes sense given their large representation in the training data. Conversely, when recall is less than precision, the model is underpredicting that class, resulting in many false negatives. For example, “Trees” and “Shrubs” are often missed by the model. Given these classes are not underrepresented in the training data, the model may be struggling to distinguish between them and other classes due to their similar spectral signatures.</p>
+<p><span class="math display">\[
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Landcover Type} &amp; \textbf{Misclassifications} &amp; \textbf{Misclassification Rate} &amp; \textbf{Precision} &amp; \textbf{Recall} \\ \hline
+\text{Water}           &amp; 87   &amp; 0.24 &amp; 0.75 &amp; 0.77 \\ \hline
+\text{Grass/forb/herb} &amp; 935  &amp; 0.44 &amp; 0.55 &amp; 0.56 \\ \hline
+\text{Trees}           &amp; 1502 &amp; 0.38 &amp; 0.65 &amp; 0.62 \\ \hline
+\text{Shrubs}          &amp; 498  &amp; 0.79 &amp; 0.20 &amp; 0.21 \\ \hline
+\text{Barren}          &amp; 226  &amp; 0.69 &amp; 0.25 &amp; 0.30 \\ \hline
+\text{Impervious}      &amp; 90   &amp; 0.93 &amp; 0.06 &amp; 0.07 \\ \hline
+\text{Snow/Ice}        &amp; 1    &amp; 1.00 &amp; 0.00 &amp; 0.00 \\ \hline
+\end{array}
+\]</span> A close examination of class-specific performance metrics reveals substantial variability across different land cover categories, underscoring the limitations of the CART approach in this context. Table 1 presents a detailed breakdown of the model’s performance across seven distinct land cover types. Notably, classes such as “Water,” “Grass/Forb/Herb,” and “Barren” exhibit higher precision and recall values compared to other classes. For instance, the “Water” class achieved a precision of 0.75 and a recall of 0.77, reflecting the model’s relative proficiency in correctly identifying water bodies. Similarly, “Grass/Forb/Herb” and “Barren” classes maintained moderate precision and recall scores of 0.55/0.56 and 0.25/0.30, respectively. These results are consistent with the high representation of these classes in the training dataset, enabling the CART model to leverage their abundant samples for more accurate predictions.</p>
+<p>Conversely, the model struggled significantly with classes such as “Trees,” “Shrubs,” “Impervious,” and “Snow/Ice,” as evidenced by their low precision and recall scores. The “Trees” class, while not being a minority class, exhibited a precision of 0.65 and a recall of 0.62, indicating a propensity to misclassify tree-covered areas as “Grass/Forb/Herb” or “Shrubs.” The “Shrubs” and “Snow/Ice” classes demonstrated particularly poor performance, with both precision and recall values hovering around 0.20 and even 0.00, respectively. These low metrics suggest that the CART model frequently misclassifies these classes, either by overpredicting them as other categories or by failing to recognize them altogether.</p>
+<p>The observed discrepancies in precision and recall across classes may be attributed to several factors. Firstly, the pronounced class imbalance within the dataset, where classes like “Grass/Forb/Herb” dominate with 8,825 observations compared to the sparsely represented “Snow/Ice” class with only 2 observations, inherently biases the model towards majority classes. This imbalance leads to overprediction of well-represented classes, as the model leverages their abundance to minimize overall error, inadvertently neglecting minority classes. Secondly, the spectral similarities between certain land cover types, such as “Trees” and “Grass/Forb/Herb,” exacerbate the model’s difficulty in distinguishing between these categories. The overlapping spectral signatures result in ambiguous feature spaces where CART’s binary splitting strategy becomes less effective in delineating clear decision boundaries.</p>
+<p>Moreover, the high misclassification rates for minority classes, particularly “Shrubs” and “Snow/Ice,” highlight the model’s inability to capture the nuanced spectral and spatial characteristics necessary for accurate classification. The CART algorithm’s susceptibility to overfitting further compounds these issues, as deep trees may capture noise and specific patterns in the training data that do not generalize well to unseen data, leading to poor performance on underrepresented classes.</p>
+</section>
+</section>
+<section id="cart-ii" class="level2">
+<h2 class="anchored" data-anchor-id="cart-ii">CART II</h2>
+<p>To deepen our analysis and address the limitations observed in the initial CART model, we developed a <em>secondary</em> CART classifier tailored specifically for the state of New York. This targeted approach was necessitated by the substantial computational resources required to process extensive satellite datasets. By concentrating our efforts on a geographically confined area, we aimed to optimize both computational efficiency and model performance.</p>
+<section id="geospatial-data-partitioning" class="level3">
+<h3 class="anchored" data-anchor-id="geospatial-data-partitioning">Geospatial Data Partitioning</h3>
+<p>We defined a rectangular region encompassing New York and extended it outward by a 60-kilometer buffer to form a “doughnut” buffer zone. This spatial configuration facilitated a clear separation between training and testing datasets, enhancing the robustness of our evaluation. Specifically, observations located within the central rectangle were designated as training data, while those within the surrounding doughnut buffer served as the testing dataset. This method ensured that the model was trained on a representative sample of the region while being rigorously tested on geographically distinct points, thereby mitigating potential spatial autocorrelation biases. (See full code <a href="https://code.earthengine.google.com/c3ff3c14701654ffd166e70e189f8ee6">here</a>).</p>
+<p>A Landsat 8 composite image is generated for the region, and predictor bands (B1–B7) are sampled at training points to train a CART classifier. The classifier is then applied to the composite image to produce a classified landcover map. The classification results are validated using test points, and a confusion matrix is computed to evaluate performance, including overall accuracy and the Kappa coefficient. Misclassified points, identified by comparing predicted values (classification) to true values (landcover), are highlighted in red and displayed on the following map:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="sims/mapoverlays.png" class="img-fluid figure-img"></p>
+<figcaption>Map of Classified Landcover in New York</figcaption>
+</figure>
+</div>
+</section>
+<section id="performance-evaluation-2" class="level3">
+<h3 class="anchored" data-anchor-id="performance-evaluation-2">Performance Evaluation</h3>
+<p><span class="math display">\[
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Landcover Type} &amp; \textbf{Misclassifications} &amp; \textbf{Misclassification Rate} &amp; \textbf{Precision} &amp; \textbf{Recall} \\ \hline
+\text{Water}           &amp; 2   &amp; 0.10 &amp; 0.9 &amp; 0.9 \\ \hline
+\text{Grass/forb/herb} &amp; 26  &amp; 0.18 &amp; 0.85 &amp; 0.82 \\ \hline
+\text{Trees}           &amp; 22   &amp; 0.43 &amp; 0.52 &amp; 0.56 \\ \hline
+\text{Shrubs}          &amp; 3    &amp; 1.0 &amp; 0.0 &amp; 0.0 \\ \hline
+\text{Barren}          &amp; 1    &amp; 1.0 &amp; 0.0 &amp; 0.0 \\ \hline
+\text{Impervious}      &amp; 4    &amp; 0.8 &amp; 0.25 &amp; 0.20 \\ \hline
+\end{array}
+\]</span></p>
+<p>The enhanced CART model achieved an overall accuracy of 73.84% and a Kappa <span class="math inline">\(\kappa\)</span> coefficient of 0.52, signifying a moderate level of agreement beyond chance between the predicted and actual classifications. The classifier incorrectly classified 72 out of 241 test observations, corresponding to a 29% misclassification rate. The confusion matrix revealed that the model performed very well in identifying “Water” and “Grass/Forb/Herb” classes, with minimal misclassifications in these categories. However, challenges persisted in accurately classifying “Trees,” “Shrubs,” and “Impervious” surfaces. Specifically, “Trees” were frequently misclassified as “Grass/Forb/Herb,” while “Shrubs” and “Impervious” surfaces exhibited high misclassification rates, often being confused with other vegetative classes or incorrectly identified as “Barren.” It should be noted that “Snow/Ice” was not included in the training set because no “Snow/Ice” labels existed in NY.</p>
+<p>These results underscore the inherent limitations of <em>single</em> decision tree models like CART in handling complex, multi-class classification tasks, particularly in scenarios characterized by class imbalance and spectral similarity among land cover types. The propensity for overfitting, as evidenced by high misclassification rates in certain classes, highlights the need for more sophisticated ensemble methods to enhance classification accuracy and robustness by capturing non-linear relationships and interactions more effectively by using multiple decision trees.</p>
+</section>
+</section>
+<section id="random-forests" class="level2">
+<h2 class="anchored" data-anchor-id="random-forests">Random Forests</h2>
+<p>Random Forests, a popular ensemble learning method, address these limitations by constructing multiple decision trees and aggregating their predictions to improve accuracy and robustness. Unlike linear models, Random Forests can naturally handle multicollinearity, complex decision boundaries, and interactions between predictors without requiring explicit feature engineering.</p>
+<section id="assumptions-2" class="level3">
+<h3 class="anchored" data-anchor-id="assumptions-2">Assumptions:</h3>
+<p>Random Forests are non-parametric models that make no assumptions about the functional relationship between the predictors and the outcome variable. This flexibility allows them to capture both non-linearities and hierarchical feature relationships effectively. Additionally, Random Forests are robust to overfitting due to their bagging (bootstrap aggregation) strategy, where <em>each</em> tree is trained on a random subset of the data, and only a random subset of predictors is considered at each split. Out-of-bag (OOB) error, a unique feature of Random Forests, provides an internal measure of model performance without requiring a separate validation dataset, thus maximizing data utilization.</p>
+</section>
+<section id="model-specification-3" class="level3">
+<h3 class="anchored" data-anchor-id="model-specification-3">Model Specification:</h3>
+<p>Random Forests extend the CART algorithm by building an ensemble of decision trees, each trained on a bootstrapped sample of the data and using a random subset of predictors at each split.</p>
+<ol type="1">
+<li><p>For a dataset <span class="math inline">\(D\)</span> with <span class="math inline">\(n\)</span> observations, each tree in the Random Forest is trained on a bootstrapped sample <span class="math inline">\(D^*\)</span>, which is a random sample of <span class="math inline">\(n\)</span> observations drawn <em>with</em> replacement.</p></li>
+<li><p>At each split in a tree:</p>
+<ul>
+<li>A random subset <span class="math inline">\(m\)</span> of total $p$ predictors is selected (<span class="math inline">\(m &lt;&lt; p\)</span>).</li>
+<li>The split that minimizes the impurity criterion (e.g.&nbsp;Gini index) is chosen.</li>
+</ul></li>
+<li><p>For classification, the final class prediction is determined by the majority vote across <em>all</em> trees:</p>
+<p><span class="math display">\[
+\hat{y} = \text{argmax}c \left( \frac{1}{T} \sum_{t=1}^T I_{f_t(x) = c} \right),
+\]</span>where <span class="math inline">\(f_t(x)\)</span> is the prediction of the <span class="math inline">\(t^{th}\)</span> tree and <span class="math inline">\(T\)</span> is the total number of trees in the forest.</p></li>
+<li><p>The out-of-bag error (from the samples not included in the bootstrapped dataset) is used to provide an unbiased estimate of model performance without needing a separate test set.</p></li>
+</ol>
+</section>
+<section id="implementation-3" class="level3">
+<h3 class="anchored" data-anchor-id="implementation-3">Implementation:</h3>
+<p>The Random Forest model was implemented with the same predictors as those used in the original multinomial logistic regression model. Hyperparameter tuning was performed to optimize three key parameters:</p>
+<ol type="1">
+<li><p>Number of Trees (<code>num_trees</code>): The total number of decision trees in the ensemble. We tested values: 50 and 100.</p></li>
+<li><p>Features per Split (<code>mtry</code>): The number of predictors randomly sampled at each node split. We tested values: 2, 4, and 6.</p></li>
+<li><p>Maximum Tree Depth (<code>max_depth</code>): The maximum depth allowed for each decision tree. We tested values: 10, 15, and 20.</p></li>
+</ol>
+<p>A grid search approach was used to systematically evaluate all combinations of these hyperparameters. For each combination, the Random Forest was trained using bootstrap sampling, and the Out-of-Bag (OOB) error was recorded as a measure of predictive performance. The table below summarizes the results of the grid search, highlighting the combination of hyperparameters that minimized the OOB error.</p>
+<p><span class="math display">\[
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Number of Trees} &amp; \textbf{Features per Split (mtry)} &amp; \textbf{Max Depth} &amp; \textbf{OOB Error} \\ \hline
+50  &amp; 2 &amp; 10 &amp; 0.2820 \\ \hline
+100 &amp; 2 &amp; 10 &amp; 0.2812 \\ \hline
+50  &amp; 4 &amp; 10 &amp; 0.2750 \\ \hline
+100 &amp; 4 &amp; 10 &amp; 0.2746 \\ \hline
+50  &amp; 6 &amp; 10 &amp; 0.2744 \\ \hline
+100 &amp; 6 &amp; 10 &amp; 0.2744 \\ \hline
+50  &amp; 2 &amp; 15 &amp; 0.2756 \\ \hline
+100 &amp; 2 &amp; 15 &amp; 0.2745 \\ \hline
+50  &amp; 4 &amp; 15 &amp; 0.2664 \\ \hline
+100 &amp; 4 &amp; 15 &amp; 0.2659 \\ \hline
+50  &amp; 6 &amp; 15 &amp; 0.2659 \\ \hline
+100 &amp; 6 &amp; 15 &amp; 0.2654 \\ \hline
+50  &amp; 2 &amp; 20 &amp; 0.2749 \\ \hline
+100 &amp; 2 &amp; 20 &amp; 0.2737 \\ \hline
+50  &amp; 4 &amp; 20 &amp; 0.2640 \\ \hline
+\textbf{100} &amp; \textbf{4} &amp; \textbf{20} &amp; \textbf{0.2631} \\ \hline
+50  &amp; 6 &amp; 20 &amp; 0.2645 \\ \hline
+100 &amp; 6 &amp; 20 &amp; 0.2636 \\ \hline
+\end{array}
+\]</span></p>
+<p>The results show that the optimal hyperparameters are 100 trees, 4 features per split (<code>mtry</code>), and a maximum depth of 20, which achieved the lowest OOB error of 0.2631. Increasing the number of trees from 50 to 100 consistently led to slight improvements in performance, particularly for deeper trees (max depth = 20), as it reduced the variance of the ensemble. The choice of mtry = 4 balanced the trade-off between introducing randomness and maintaining sufficient feature relevance at each split. The values tested were determined in line with our limited computational power.</p>
+</section>
+<section id="performance-evaluation-3" class="level3">
+<h3 class="anchored" data-anchor-id="performance-evaluation-3">Performance Evaluation:</h3>
+<p>Using the optimal hyperparameters, the final Random Forest model was trained on the entire dataset. The performance of the model was evaluated using the same metrics as the multinomial logistic regression, including precision, recall, F1-score, and balanced accuracy for each land cover class. These metrics allow for a direct comparison with the previous models and provide insights into the Random Forest’s ability to handle underrepresented classes and complex relationships between predictors. Additionally, variable importance measures were derived to identify the most influential predictors contributing to classification performance.</p>
+<p><span class="math display">\[
+\begin{array}{|l|c|c|c|c|}
+\hline
+\textbf{Class}               &amp; \textbf{Precision} &amp; \textbf{Recall} &amp; \textbf{F1} &amp; \textbf{Balanced Accuracy} \\ \hline
+\textbf{Barren}              &amp; 0.9713             &amp; 0.9860          &amp; 0.9786      &amp; 0.9923                     \\ \hline
+\textbf{Grass/Forb/Herb}     &amp; 0.7364             &amp; 0.8842          &amp; 0.8036      &amp; 0.8112                     \\ \hline
+\textbf{Impervious}          &amp; 0.9074             &amp; 0.9379          &amp; 0.9224      &amp; 0.9684                     \\ \hline
+\textbf{Shrubs}              &amp; 0.9621             &amp; 0.1404          &amp; 0.2450      &amp; 0.5700                     \\ \hline
+\textbf{Snow/Ice}            &amp; 1.0000             &amp; 0.9471          &amp; 0.9729      &amp; 0.9736                     \\ \hline
+\textbf{Trees}               &amp; 0.7961             &amp; 0.7450          &amp; 0.7697      &amp; 0.8277                     \\ \hline
+\textbf{Water}               &amp; 0.9963             &amp; 0.9849          &amp; 0.9906      &amp; 0.9923                     \\ \hline
+\textbf{Macro Averaged}      &amp; \textbf{0.9099}    &amp; \textbf{0.8037} &amp; \textbf{0.8118} &amp; \textbf{0.8765}        \\ \hline
+\end{array}
+\]</span></p>
+<p>The Random Forest model demonstrates significant advancements over the previous approaches, effectively addressing key limitations such as class imbalance, non-linear relationships, and feature interactions. By leveraging ensemble learning, Random Forests construct multiple decision trees, enabling the model to capture complex patterns and decision boundaries that were inaccessible to linear models. This flexibility is particularly beneficial for remote sensing data, where spectral, spatial, and temporal relationships are inherently non-linear and often exhibit overlapping class distributions.</p>
+<p>The model’s performance highlights its strengths in accurately classifying dominant land cover classes as well as improving results for underrepresented categories, especially relative to the baseline multinomial logistic regression models. For classes such as “Water”, “Barren”, and “Impervious”, the Random Forest achieves near-perfect classification, with F1-scores exceeding 0.92. Specifically, “Water” achieves a precision of 0.996 and recall of 0.985, reflecting the model’s ability to distinguish spectrally distinct classes with high confidence. This improvement extends to minority classes that were poorly handled by the multinomial regression models. For example, the “Snow/Ice” class, which previously exhibited an F1-score as low as 0.07, now achieves a robust 0.973, driven by a recall of 0.947. Such gains indicate the model’s capacity to capture subtle seasonal and spectral signals associated with this class. Similarly, the “Shrubs” class, which remained nearly undetected in previous models, now achieves an F1-score of 0.245, although challenges persist with its relatively low recall of 0.140. This partial improvement can be attributed to the spectral overlap between “Shrubs” and other vegetated classes such as “Grass/Forb/Herb” and “Trees”, highlighting a persistent difficulty in resolving spectrally similar land cover types.</p>
+<p>The macro-averaged performance metrics further underscore the Random Forest model’s effectiveness. With a precision of 0.910, recall of 0.804, and F1-score of 0.812, the Random Forest <em>significantly</em> outperforms the multinomial models. The balanced accuracy of 0.877 indicates that the model achieves reliable classification performance across all classes, mitigating the biases observed previously where dominant classes were disproportionately favored. These results demonstrate the Random Forest’s robustness to class imbalance and its ability to generalize well across diverse land cover categories.</p>
+</section>
+<section id="interpretation-1" class="level3">
+<h3 class="anchored" data-anchor-id="interpretation-1">Interpretation:</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="report_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The variable importance analysis provides additional insights into the predictors driving model performance. The Vegetation Indicator (<code>Veg</code>) emerges as the most influential variable, followed closely by <code>Elevation</code> and <code>NDVI</code>, reinforcing their ecological relevance in distinguishing between vegetated and non-vegetated classes. Principal components (<code>PC1</code>, <code>PC2</code>), derived previously through dimensionality reduction, also exhibit high importance, validating their role in summarizing the spectral information from the original bands. Spatial features such as <code>North/South</code> and temporal predictors like <code>Season</code> contribute somewhat, although to a much lesser extent.</p>
+</section>
+<section id="appropriateness-1" class="level3">
+<h3 class="anchored" data-anchor-id="appropriateness-1">Appropriateness:</h3>
+<p>The Random Forest model proves highly appropriate for the land cover classification task, given the complex nature of the data, which includes non-linear relationships, overlapping class boundaries, and interactions among predictors. Unlike linear models, Random Forests make no assumptions about the underlying data structure, allowing them to effectively capture the non-linear and hierarchical patterns often inherent in remote sensing datasets. The ability of Random Forests to incorporate a wide range of predictors—spectral bands, elevation, NDVI, spatial, and temporal variables—further demonstrates their suitability for this problem. Though robust to multicollinearity, we included the principal components of the spectral bands instead of the bands themselves for computational efficiency.</p>
+<p>The performance evaluation of the Random Forest provides strong evidence of its predictive ability and fit for this data. The model achieves significant improvements across precision, recall, F1-score, and balanced accuracy, particularly for minority and previously underperforming classes. The macro-averaged F1-score of 0.812 and balanced accuracy of 0.877 highlight the model’s ability to generalize across all land cover categories, effectively addressing the class imbalance that hampered multinomial logistic regression. Dominant classes such as “Water” and “Barren” maintain near-perfect classification, while substantial improvements for “Snow/Ice” validate the model’s capacity to handle underrepresented and spectrally ambiguous classes. These measures of fit underscore the Random Forest’s superior predictive performance and adaptability to complex classification tasks.</p>
+<p>Despite its strong predictive ability, interpretability remains a key limitation of the Random Forest model. While linear models like multinomial regression provide explicit coefficients that quantify the effect of each predictor, Random Forests operate as an ensemble of decision trees, making it difficult to trace <em>specific</em> decision-making pathways. Variable importance measures offer a high-level understanding of predictor relevance, as seen with <code>Veg</code>, <code>Elevation</code>, and <code>NDVI</code> emerging as critical variables; however, they do not provide insights into the specific relationships or interactions driving individual predictions. This complexity poses challenges when explaining the model to non-technical audiences, as the lack of clear, interpretable coefficients limits transparency. For technical audiences, the variable importance plots and performance metrics offer valuable insights but require familiarity with ensemble methods to fully appreciate the results.</p>
+<p>The computational demands of Random Forests further contribute to their trade-offs. The hyperparameter tuning process, involving grid search over combinations of tree count, feature sampling, and tree depth, increases training time, particularly for large datasets. However, the resulting improvements in performance justify this computational cost. Moreover, the ability to measure out-of-bag error during training maximizes data utilization and reduces the need for an additional validation set, which is particularly advantageous for resource-constrained settings.</p>
+<p>Overall, the Random Forest model is highly appropriate for this land cover classification problem, excelling in addressing non-linear relationships, class imbalance, and complex feature interactions without requiring stringent assumptions about the data. Its strong performance metrics affirm its predictive ability and robustness, making it a powerful tool for remote sensing applications. However, the limited interpretability of the model and its computational intensity present challenges for transparency and communication, particularly for non-technical stakeholders.</p>
+</section>
+</section>
+<section id="comparative-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="comparative-analysis">Comparative Analysis</h2>
+<p>Comparing the three models—Multinomial Logistic Regression, CART, and Random Forests—reveals a clear progression in performance and capability. The MLR model serves as a baseline, demonstrating strong performance for dominant classes but faltering on underrepresented and spectrally similar categories due to its linear assumptions and inability to handle complex interactions. The initial CART model offers improved handling of non-linear relationships but still struggles with class imbalance and overlapping spectral signatures, particularly evident in the poor performance on “Shrubs” and “Snow/Ice.”</p>
+<p>Random Forests emerge as the superior model, effectively addressing the limitations of both MLR and CART by leveraging ensemble learning to capture non-linear relationships and interactions among predictors. RF significantly enhances classification accuracy across <em>all</em> classes, especially for those that were previously underrepresented or spectrally ambiguous. The variable importance analysis further validates the model’s ecological relevance, highlighting key predictors such as <code>Veg</code>, <code>Elevation</code>, and <code>NDVI.</code></p>
+<p>Despite its strengths, Random Forests present challenges in interpretability, as the ensemble nature of the model obscures the decision-making pathways inherent in individual trees. While variable importance provides a high-level understanding of predictor relevance, it lacks the explicit coefficient-based interpretability of MLR. Additionally, the computational intensity of training RF models, particularly with extensive hyperparameter tuning, demands significant computational resources.</p>
+<p>In conclusion, while Multinomial Logistic Regression and CART offer valuable insights and interpretability, Random Forests provide a more robust and accurate solution for land cover classification in complex, multi-class scenarios characterized by class imbalance and overlapping spectral features. The superior performance of Random Forests aligns with the central research objective of achieving accurate and reliable land cover classification using satellite-derived predictors.</p>
+<div style="page-break-after: always;"></div>
+</section>
+</section>
+<section id="conclusions-recs" class="level1">
+<h1>Conclusions and Recommendations</h1>
+<p>This comprehensive study undertook an in-depth exploration and modeling of land cover classification using satellite-derived predictors, integrating both data exploration and advanced machine learning techniques. The data exploration phase revealed significant class imbalances, with dominant classes such as “Grass/Forb/Herb” and “Trees” comprising over three-quarters of the observations, while classes like “Snow/Ice” and “Impervious” were markedly underrepresented. Additionally, the analysis of spectral bands and NDVI highlighted substantial collinearity among visible bands and overlapping distributions across certain land cover types, underscoring the complexity inherent in accurately distinguishing between spectrally similar classes. Temporal and spatial analyses further elucidated seasonal trends and geographic patterns that influenced vegetation dynamics and land cover distribution.</p>
+<p>In the modeling phase, Multinomial Logistic Regression (MLR) served as a baseline, demonstrating adequate performance for dominant classes but struggling with underrepresented and spectrally similar categories due to its linear assumptions and inability to capture complex interactions. The initial Classification and Regression Trees (CART) model mirrored these limitations when applied broadly across the dataset. However, a geographically tailored CART model for New York exhibited improved accuracy and a higher Kappa coefficient, indicating better performance within a more homogeneous region but still facing challenges with certain classes. In stark contrast, with a macro-averaged F1-score of 0.812 and balanced accuracy of 0.877, Random Forests (RF) emerged as the superior model, significantly enhancing classification accuracy across all classes, including those previously underrepresented or spectrally ambiguous. The RF model’s robust performance is attributed to its ensemble nature, which adeptly handles class imbalance and captures non-linear relationships among predictors. Furthermore, variable importance analysis from the RF model corroborated the ecological relevance of key predictors such as vegetation indicators, elevation, and NDVI, aligning with insights gleaned from the data exploration phase.</p>
+<section id="recommendations" class="level2">
+<h2 class="anchored" data-anchor-id="recommendations">Recommendations</h2>
+<p>Building upon the insights gained from both data exploration and modeling, several strategic recommendations are proposed to further enhance land cover classification accuracy and robustness.</p>
+<p>Firstly, addressing the pronounced class imbalance is paramount. The data exploration highlighted the dominance of certain classes, which adversely affected the model’s ability to accurately classify minority classes. Implementing advanced techniques such as Synthetic Minority Over-sampling Technique (SMOTE) or cost-sensitive learning within the Random Forest framework can mitigate this imbalance, ensuring that underrepresented classes receive adequate representation during training. Additionally, leveraging feature engineering enhancements by incorporating spatial aggregates or temporal lags can capture neighborhood effects and temporal dependencies more effectively, thereby enriching the predictor set and enhancing model performance.</p>
+<p>Secondly, the high collinearity observed among spectral bands necessitates the application of dimensionality reduction techniques beyond Principal Component Analysis (PCA). Exploring methods such as t-distributed Stochastic Neighbor Embedding (t-SNE) or Uniform Manifold Approximation and Projection (UMAP) could uncover latent structures within the data, reducing redundancy while preserving essential spectral information. This approach aligns with the data exploration findings, which emphasized the need to consolidate highly correlated spectral bands to improve model efficiency and interpretability. <em>Linear</em> dimensionality reduction was only the surface of applications in this area.</p>
+<p>Moreover, enhancing model interpretability remains a critical consideration, particularly when communicating results to non-technical stakeholders. While Random Forests offer superior predictive performance, their ensemble nature complicates the extraction of explicit decision pathways. Integrating interpretability tools such as SHapley Additive exPlanations (SHAP) or Partial Dependence Plots (PDP) can bridge this gap, providing clear insights into how individual predictors influence class predictions. This aligns with the data exploration phase’s emphasis on understanding predictor relationships, ensuring that model insights are both actionable and transparent.</p>
+<p>Lastly, optimizing computational efficiency is essential, especially given the substantial computational resources required for hyperparameter tuning in ensemble models. Adopting parallel processing capabilities or more efficient implementations of Random Forests can enhance scalability and reduce training times, facilitating the application of these models to larger and more diverse datasets as identified during the data exploration phase.</p>
+</section>
+<section id="future-work-and-improvement" class="level2">
+<h2 class="anchored" data-anchor-id="future-work-and-improvement">Future Work and Improvement</h2>
+<p>Future research should focus on expanding and refining the current modeling framework to further elevate land cover classification accuracy and operational utility. One promising avenue is the exploration of more advanced ensemble methods, such as Gradient Boosting Machines or Extreme Gradient Boosting, which may offer incremental performance enhancements over Random Forests by better capturing intricate patterns and interactions within the data. Additionally, the integration of deep learning architectures, such as Convolutional Neural Networks (CNNs), holds potential for leveraging spatial hierarchies and patterns inherent in remote sensing imagery, thereby improving classification performance for complex and heterogeneous land cover types.</p>
+<p>Further, incorporating additional data sources, such as LiDAR-derived elevation metrics or higher-resolution temporal data, can provide a more comprehensive feature set that enhances model robustness and accuracy. This aligns with the data exploration findings that underscored the importance of diverse predictors in capturing the multifaceted nature of land cover dynamics. Spatial-temporal modeling techniques that explicitly account for both spatial dependencies and temporal dynamics should also be developed, potentially leveraging frameworks like Spatio-Temporal Random Forests or integrating Geographic Information System methodologies to better model the inherent spatio-temporal structure of the data.</p>
+<p>Enhanced feature selection and dimensionality reduction methods should be pursued to uncover latent structures within the data that may improve classification performance. Techniques such as feature importance ranking, recursive feature elimination, or embedding-based methods can identify and retain the most informative predictors, reducing model complexity and enhancing interpretability. Moreover, assessing the generalizability of the developed models across different geographic regions and temporal periods is crucial. Employing transfer learning techniques to adapt models trained on one region to new, unseen regions with minimal retraining can significantly expand the applicability and scalability of the classification framework.</p>
+<p>Future work can significantly advance the state-of-the-art in land cover classification, providing more accurate, interpretable, and scalable solutions essential for effective environmental management and decision-making.</p>
+<div style="page-break-after: always;"></div>
+</section>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<p>Hastie, T., Tibshirani, R., &amp; Friedman, J. (2009). The elements of statistical learning: Data mining, inference, and prediction (2nd ed.). New York: Springer. DOI: 10.1007/978-0-387-84858-7</p>
+<p>U.S. Geological Survey. (n.d.). Land Change Monitoring, Assessment, and Projection (LCMAP). U.S. Department of the Interior. Retrieved from https://www.usgs.gov/special-topics/lcmap</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
