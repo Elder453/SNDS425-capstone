@@ -70,7 +70,7 @@ SNDS425-capstone/
    cd SNDS425-capstone
    ```
 
-2. **Install R and Required Packages**
+2. **Install R and Required Packages**  
 	The `LoadLibraries.R` script handles the installation and loading of all necessary R packages. Ensure you have an active internet connection to install any missing packages.
 
 ### Execution
